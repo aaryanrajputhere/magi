@@ -1,0 +1,43 @@
+services:
+  backend:
+    build: ./backend
+    user: "${MAGI_UID:-1000}:${MAGI_GID:-1000}"
+    environment:
+      MAGI_CAMPAIGN_AGENT_ENABLED: ${MAGI_CAMPAIGN_AGENT_ENABLED:-false}
+      MAGI_DATABASE_URL: sqlite:////app/data/magi.db
+      MAGI_BRAND_SOURCE_DIR: /app/brand-source
+      MAGI_DOCUMENT_DIRECTORY: ${MAGI_DOCUMENT_DIRECTORY:-brand}
+      MAGI_IMAGE_DIRECTORY: ${MAGI_IMAGE_DIRECTORY:-images}
+      MAGI_BRIEF_DIRECTORY: ${MAGI_BRIEF_DIRECTORY:-briefs}
+      MAGI_RETRIEVAL_PLANNER_MODEL: ${MAGI_RETRIEVAL_PLANNER_MODEL:-gpt-4.1-mini}
+      MAGI_OPENAI_TIMEOUT_SECONDS: ${MAGI_OPENAI_TIMEOUT_SECONDS:-60}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY:-}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./data:/app/data
+      - ./evaluation:/app/evaluation:ro
+      - ./wickhold-candidate-package/candidate:/app/brand-source:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=5)",
+        ]
+      interval: 5s
+      timeout: 6s
+      retries: 10
+      start_period: 5s
+
+  frontend:
+    build: ./frontend
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-5173}:5173"
+    depends_on:
+      backend:
+        condition: service_healthy

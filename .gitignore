@@ -1,0 +1,34 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+node_modules/
+dist/
+*.tsbuildinfo
+data/
+*.egg-info/
+
+# Local brand inputs and supplied evaluation data
+wickhold-candidate-package/
+brief.pdf
+evaluation/wickhold-*.json
+
+# Local databases, credentials, logs and editor files
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+*.log
+.aws/
+.DS_Store
+.idea/
+.vscode/
+coverage/
+.coverage
+htmlcov/
