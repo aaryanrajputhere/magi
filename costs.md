@@ -1,5 +1,69 @@
 # Campaign costs
 
+## Brief 1: Leashgate GA launch
+
+[Campaign in the app](http://localhost:5173/#campaigns/34dc9933-7f5e-4984-9600-d6917c6a801a) · campaign ID: `34dc9933-7f5e-4984-9600-d6917c6a801a`
+
+### Brief and recorded outcome
+
+The initial user message is the Leashgate general-availability campaign from [brief-1-leashgate-ga-launch.md](wickhold-candidate-package/candidate/briefs/brief-1-leashgate-ga-launch.md), pasted with formatting changes. It announces GA on January 26, 2027, targets 60 demo requests by March 31, and requires launch-day and follow-up assets while preserving product-scope and pre-launch restrictions.
+
+Snapshot: 2026-11-05. Campaign state: `needs_review`. The conversation records two answers about retaining the working-room hero and seeking a documented Brand exception to product-page imagery guidance. Those answers record the requested campaign treatment; they do not establish that the exception was granted. One saved plan and 11 saved drafts are present: one landing page, three emails, three LinkedIn posts, two X posts, and two blogs. All drafts are marked `needs_review`. This is a measured attempt, not a claim of a fully validated campaign or permission to publish.
+
+### Campaign usage
+
+| Scope | Calls | Reported input tokens | Reported output tokens | Reported cached input tokens | Cache hit rate | Known estimated USD | Unknown-cost calls |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Linked campaign, including conflict clarification and generation | 74 | 11,162,445 | 223,854 | 1,353,747 | 12.13% | $3.06979200 | 30 |
+
+Reported input plus output tokens: **11,386,299**. Cached tokens are a subset of input tokens. These are the totals reported by 73 calls; one `campaign_conflict_find` call timed out without usable token usage. Its tokens and any provider billing remain unknown, so the reported token total is incomplete. Missing usage is excluded from the cache-hit denominator, not treated as a measured zero-token call.
+
+The USD figure is a **known-cost subtotal**, not the full campaign cost. Thirty `gpt-6-luna` calls have no persisted cost estimate, including the timeout. No new provider calls were made to prepare this report.
+
+### Breakdown by step
+
+| Recorded operation | Calls | Reported input tokens | Reported output tokens | Reported cached input tokens | Cache hit rate | Known estimated USD | Unknown-cost calls |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `campaign_memory` | 1 | 2,572 | 449 | 0 | 0.00% | $0.00174720 | 0 |
+| `campaign_agent_step` | 2 | 15,675 | 31 | 5,760 | 36.75% | $0.00459160 | 0 |
+| `campaign_requirements` | 1 | 5,829 | 3,162 | 0 | 0.00% | $0.00739080 | 0 |
+| `plan_retrieval` | 1 | 8,179 | 497 | 0 | 0.00% | $0.00406680 | 0 |
+| `campaign_conflict_find` | 5 | 320,696 | 36,575 | 70,955 | 22.13% | Unknown | 5 |
+| `campaign_conflict_check` | 3 | 260,267 | 17,479 | 7,016 | 2.70% | Unknown | 3 |
+| `campaign_evidence_gap` | 1 | 322,597 | 105 | 0 | 0.00% | $0.12920680 | 0 |
+| `campaign_research_plan` | 1 | 3,810 | 140 | 0 | 0.00% | $0.00174800 | 0 |
+| `campaign_plan` | 1 | 749,412 | 1,962 | 0 | 0.00% | $0.30290400 | 0 |
+| `campaign_deliverables_repair` | 1 | 176,021 | 1,944 | 0 | 0.00% | $0.07351880 | 0 |
+| `campaign_plan_verification` | 1 | 464,182 | 539 | 0 | 0.00% | $0.18653520 | 0 |
+| `campaign_plan_coverage_repair` | 1 | 765,997 | 1,632 | 0 | 0.00% | $0.30901000 | 0 |
+| `generate_campaign_asset` | 11 | 3,455,635 | 15,485 | 1,270,016 | 36.75% | $1.02602520 | 0 |
+| `select_campaign_image` | 11 | 1,344,073 | 1,535 | 0 | 0.00% | $0.54008520 | 0 |
+| `campaign_asset_validation` | 22 | 2,120,882 | 127,122 | 0 | 0.00% | Unknown | 22 |
+| `campaign_asset_repair` | 11 | 1,146,618 | 15,197 | 0 | 0.00% | $0.48296240 | 0 |
+
+All 74 recorded attempts are included: 66 completed, seven incomplete, and one timeout. The table includes 11 automatic asset repairs and all 22 validation attempts. Initial-generation repairs are not user-requested draft edits. Token columns sum available reported usage; the conflict-finding row includes the timeout but cannot include its unreported tokens.
+
+### Breakdown by model
+
+| Recorded model | Calls | Reported input tokens | Reported output tokens | Reported cached input tokens | Cache hit rate | Known estimated USD | Unknown-cost calls |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `gpt-4.1-mini-2025-04-14` | 44 | 8,460,600 | 42,678 | 1,275,776 | 15.08% | $3.06979200 | 0 |
+| `gpt-6-luna` | 30 | 2,701,845 | 181,176 | 77,971 | 2.89% | Unknown | 30 |
+
+### Research and shared preparation
+
+Firecrawl research: one completed recorded attempt, five requests, and seven locally estimated credits. Its USD cost is unavailable in these records and excluded from the known-cost subtotal. Shared ingestion, document embeddings, and unrelated development/evaluation runs are excluded; their cost is not assumed to be zero. Campaign-linked query embeddings, if recorded, are included.
+
+### Typical user edit
+
+**Not measured for this campaign.** The recorded user follow-ups answer imagery-conflict questions before generation. They do not revise a saved draft. A typical edit still requires a targeted chat revision and measurement of all associated routing, memory, revision, validation, and retry calls.
+
+### Calculation and evidence
+
+Source: a consistent read-only transaction over `data/magi.db`, checked against the local campaign API for the linked campaign. Selection uses `llm_runs.context.campaign_id = '34dc9933-7f5e-4984-9600-d6917c6a801a'`, with the inspector's fallback check for legacy retrieval-planning references; no additional legacy run was found. The first recorded call started at 2026-11-05 08:38:52.019703 UTC; the last started at 2026-11-05 09:05:23.486177 UTC.
+
+Costs use persisted per-run estimates. Cache hit rate is total reported cached input tokens divided by input tokens from calls with both counts available. Step and model breakdowns reconcile to the reported campaign totals. Unpriced rows display **Unknown**, and unreported usage remains unknown. Shared preparation and Firecrawl USD costs are not included.
+
 ## Brief 2: Q1 awareness push
 
 [Campaign in the app](http://localhost:5173/#campaigns/09de5fdf-17ff-4dfb-babc-e37e97121c23) · campaign ID: `09de5fdf-17ff-4dfb-babc-e37e97121c23`
@@ -27,7 +91,7 @@ Snapshot: 2026-11-05. Campaign state: `needs_review`. The saved plan contains fi
 
 This is the selected run of the two measured Brief 2 campaigns. It used 2,998,637 total tokens versus 3,815,412 for campaign `6d3ec876-d2e2-4e93-b288-c49da5620a91`, and its known estimated subtotal was $0.79163360 versus $0.99552280. Both produced five drafts marked `needs_review`, and neither included a measured user draft edit. The alternative had a slightly higher cache hit rate (0.31% versus 0.30%). Selection favors lower recorded token use and known spend; it does not establish better draft quality or a lower full cost, because review pricing is incomplete in both runs. Only the selected run is included in the tables below.
 
-This report follows the token, cost, cache-hit, and edit reporting requirements in [the assessment brief](brief.pdf). Measured runs for Briefs 2 and 3 are reported below; Brief 1 remains pending.
+This report follows the token, cost, cache-hit, and edit reporting requirements in [the assessment brief](brief.pdf). Measured runs for all three supplied briefs are included in this report.
 
 ### Campaign usage
 
@@ -148,7 +212,7 @@ Costs use persisted per-run estimates, and cache hit rate uses total cached inpu
 
 | Supplied brief | Tokens | Cost | Cache hit rate | Status |
 | --- | --- | --- | --- | --- |
-| Brief 1: Leashgate GA launch | Pending | Pending | Pending | No run selected for this report |
+| Brief 1: Leashgate GA launch | 11,386,299 reported; one call has unknown usage | $3.06979200 known subtotal; 30 calls unpriced | 12.13% of reported input | Eleven drafts need review; user edit unmeasured |
 | Brief 2: Q1 awareness push | 2,998,637 total | $0.79163360 known subtotal; 17 review calls unpriced | 0.30% | Selected run; five drafts need review; user edit unmeasured |
 | Brief 3: Regulated teams push | 4,179,238 total | $1.14817800 known subtotal; 14 review calls unpriced | 4.98% | Four drafts need review; user edit unmeasured |
 
