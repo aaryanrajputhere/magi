@@ -43,8 +43,8 @@ def test_compaction_keeps_all_unique_chunks_and_channel_isolation(monkeypatch):
     result = compact.compact_tracks(None, 'brand',
         {'id': 'retrieval', 'corpus_fingerprint': 'fp', 'groups': groups},
         {}, {'assets': [{'format': 'email'}]}, SimpleNamespace(magi_retrieval_planner_model='test'), 'campaign')
-    assert [[p['chunk_id'] for p in item['passages']] for item in inputs] == [['a', 'b']]
-    assert result['tracks']['email']['context_method'] == 'direct'
+    assert {item['track']: [p['chunk_id'] for p in item['passages']] for item in inputs} == {'topic': ['a', 'b'], 'email': ['c']}
+    assert result['tracks']['email']['context_method'] == 'compacted'
     assert result['tracks']['email']['report']['supported'] == [{'text': 'Email guidance', 'source_ids': ['c']}]
     assert result['mode'] == 'compact'
     assert result['report']['conflicts'] == []
@@ -70,3 +70,51 @@ def test_compact_schema_limits_citations_to_supplied_chunks():
             model.model_validate({'entries': [{'text': 'Fact', 'source_ids': ids}]})
     with pytest.raises(ValidationError):
         model.model_validate({'entries': []})
+
+
+def test_compaction_runs_three_tracks_concurrently_and_preserves_order(monkeypatch):
+    from threading import Barrier, Lock
+
+    barrier, lock = Barrier(3), Lock()
+    active = peak = closed = 0
+    decisions = [{'answer': 'Use the approved wording'}]
+
+    class Client:
+        def __init__(self, *args):
+            pass
+
+        def close(self):
+            nonlocal closed
+            with lock:
+                closed += 1
+
+        def run(self, request, **kwargs):
+            nonlocal active, peak
+            payload = json.loads(request.input)
+            assert payload['current_decisions'] == decisions
+            with lock:
+                active += 1
+                peak = max(peak, active)
+            try:
+                barrier.wait(timeout=5)
+                return SimpleNamespace(run_id=payload['track'], parsed=compact.Summary(entries=[
+                    compact.Entry(text='Summary', source_ids=payload['allowed_source_ids'])]))
+            finally:
+                with lock:
+                    active -= 1
+
+    monkeypatch.setattr(compact, 'TrackedOpenAI', Client)
+    monkeypatch.setattr(compact, 'count_tokens', lambda _: 1)
+    monkeypatch.setattr(compact, 'save_artifact', lambda *a: {'id': 'saved', **a[4]})
+    channels = ['email', 'x', 'linkedin', 'blog', 'landing_page']
+    names = ['topic', *channels]
+    groups = [{'status': 'success', 'query': {'id': 'topic' if n == 'topic' else f'channel__{n}__rules'},
+               'results': [{'chunk_id': n, 'content': n}]} for n in names]
+    result = compact.compact_tracks(None, 'brand',
+        {'id': 'retrieval', 'corpus_fingerprint': 'fp', 'groups': groups}, {},
+        {'assets': [{'format': n} for n in channels]},
+        SimpleNamespace(magi_retrieval_planner_model='test'), 'campaign', decisions=decisions)
+    assert peak == 3
+    assert closed == 6
+    assert list(result['tracks']) == names
+    assert [e['chunk_id'] for e in result['evidence']] == names

@@ -155,14 +155,19 @@ def test_inspector_includes_legacy_retrieval_planning_run(tmp_path):
             session.add(campaigns.Campaign(id="campaign", brand_id="brand", data={
                 "trace": [{"name": "Understand brief and plan searches",
                            "details": {"run_id": "planner"}}]}))
-            for identifier in ["planner", "unrelated"]:
+            for identifier, context in [
+                ("planner", {"brand_id": "brand"}),
+                ("unrelated", {"brand_id": "brand"}),
+                ("current", {"campaign_id": "campaign"}),
+                ("other-campaign", {"campaign_id": "other"}),
+            ]:
                 session.add(LLMRun(id=identifier, operation="plan_retrieval",
-                    context={"brand_id": "brand"}, requested_model="test",
+                    context=context, requested_model="test",
                     request_body={}, response_body={"output_text": "Questions"},
                     timeout_seconds=30, status="completed"))
             session.commit()
         runs = client.get("/api/campaigns/campaign/runs").json()
-        assert [run["id"] for run in runs] == ["planner"]
+        assert [run["id"] for run in runs] == ["planner", "current"]
 
 
 def test_message_route_schema_requires_nullable_target():

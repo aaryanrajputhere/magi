@@ -1,5 +1,5 @@
 type Data = Record<string, unknown>;
-export type Activity = {search_plans?:Data[];brief:string;state:string;trace:{name:string;status:string;error?:string}[];retrievals:Data[];selections:Data[]};
+export type Activity = {search_plans?:Data[];governing_evidence?:Data[];conflict_coverage?:Data;brief:string;state:string;trace:{name:string;status:string;error?:string}[];retrievals:Data[];selections:Data[]};
 const object=(v:unknown):Data=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Data:{};
 const list=(v:unknown):Data[]=>Array.isArray(v)?v.map(object):[];
 const text=(v:unknown)=>v==null?'':String(v);
@@ -35,6 +35,17 @@ export default function InspectorEvidence({activity}:{activity:Activity}) {
  return <section className="inspector-evidence" aria-label="Brief and retrieval evidence">
   <h3>Brief → searches → retrieved chunks</h3><p>New campaign reviews use retrieved evidence and confirmed authority. Policies outside retrieval are not checked.</p>
   <details className="evidence-brief"><summary>Original campaign brief</summary><p>{activity.brief||'No brief recorded.'}</p></details>
+  {!!activity.governing_evidence?.length&&<details><summary>Governing campaign rules · {activity.governing_evidence.length} channels</summary>
+   <p>Original governing passages supplied to review. Review status below indicates whether conflict checks completed.</p>
+   {activity.governing_evidence.map((group,i)=><details key={i}><summary>{text(object(group.query).query)}</summary>{list(group.results).map((chunk,j)=><Chunk key={j} chunk={chunk}/>)}</details>)}
+  </details>}
+  {activity.conflict_coverage&&<details><summary>Conflict coverage · {text(activity.conflict_coverage.status)}</summary>
+   {activity.conflict_coverage.source_count==null?<p>Evidence review has not completed. Governing passages are shown separately above.</p>:<p>{activity.conflict_coverage.mode==='direct'?`${list(activity.conflict_coverage.findings).length} conflicts · ${list(activity.conflict_coverage.treatments).length} rule treatments`: `${list(activity.conflict_coverage.decisions).length} decisions · ${list(activity.conflict_coverage.rules).length} rules`} · {text(activity.conflict_coverage.source_count)} sources · Independent challenge: {activity.conflict_coverage.coverage_challenged?'completed':'incomplete'}</p>}
+   {list(activity.conflict_coverage.treatments).map((item,i)=><section key={i}><strong>{text(item.explanation)}</strong><p>{text(item.treatment)}</p></section>)}
+   {Array.isArray(activity.conflict_coverage.limitations)&&activity.conflict_coverage.limitations.map((item,i)=><p key={i}>{text(item)}</p>)}
+   {list(activity.conflict_coverage.comparisons).map((comparison,i)=><section key={i}><strong>{text(comparison.decision_id)} · {text(comparison.outcome)}</strong><p>{text(comparison.reason)}</p><p>{text(comparison.exception_analysis)}</p></section>)}
+   <details><summary>Rules, quotations, findings and references</summary><pre>{JSON.stringify(activity.conflict_coverage,null,2)}</pre></details>
+  </details>}
   {activity.trace.some(s=>s.status==='failed')&&<div role="status" className="evidence-failure">{activity.trace.filter(s=>s.status==='failed').map((s,i)=><p key={i}><strong>{s.name} failed.</strong> {s.error}</p>)}</div>}
   {!activity.retrievals.length&&<p>Retrieval results will appear here once a search finishes.</p>}
   {activity.retrievals.map((retrieval,index)=><div key={text(retrieval.id)||index}>

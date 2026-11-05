@@ -82,3 +82,22 @@ def test_concurrent_change_is_preserved(tmp_path, monkeypatch):
         assert context(session, 'b')[0]['text'] == 'Manual correction'
         assert 'could not' in campaign.data['memory_notice']
     engine.dispose()
+
+
+def test_invalid_optional_evidence_does_not_warn_or_save(tmp_path, monkeypatch):
+    engine = create_database_engine(f'sqlite:///{tmp_path}/optional.db')
+    initialize_database(engine)
+    def run(self, request, **kwargs):
+        return SimpleNamespace(parsed=Interpretation(changes=[{
+            'existing_id': None, 'text': 'Always use hashtags', 'scope': 'lasting',
+            'evidence': 'Always use hashtags.'}]), run_id='run')
+    monkeypatch.setattr(TrackedOpenAI, 'run', run)
+    with Session(engine) as session:
+        campaign = Campaign(id='c', brand_id='b', data={'messages': []})
+        session.add(campaign)
+        session.commit()
+        assert learn(session, campaign, Message(text='Create a launch campaign.', version=0, request_id='r'),
+                     Settings(_env_file=None, openai_api_key='fake')) is False
+        assert context(session, 'b') == []
+        assert campaign.data['memory_notice'] is None
+    engine.dispose()

@@ -1,8 +1,24 @@
 import {useEffect,useRef,useState} from 'react';
 import InspectorEvidence,{StepPreview,inputPreview,type Activity} from './InspectorEvidence';
 
-type Run={id:string;operation:string;model:string;status:string;duration_ms:number|null;input_tokens:number|null;output_tokens:number|null;cost:string|null;request:unknown;response:unknown;error:unknown};
+type Run={id:string;operation:string;model:string;status:string;duration_ms:number|null;input_tokens:number|null;output_tokens:number|null;cost:string|number|null;request:unknown;response:unknown;error:unknown};
+function requestCost(cost:Run['cost']):number|null {
+ if(cost==null||cost==='')return null;
+ const value=Number(cost);
+ return Number.isFinite(value)&&value>=0?value:null;
+}
+function formatCost(cost:number|null) {
+ return cost==null?'Unknown':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:6}).format(cost);
+}
 const steps:Record<string,{title:string;description:string}>={
+ campaign_conflict_find:{title:'Find campaign conflicts',description:'Review original evidence for incompatible requirements, limitations and rules.'},
+ campaign_conflict_check:{title:'Verify campaign conflicts',description:'Check the first review, remove unsupported issues and find omissions.'},
+ campaign_conflict_decisions:{title:'Identify campaign decisions',description:'Extract material instructions and scoped exceptions from the original conversation.'},
+ campaign_conflict_rules:{title:'Extract source rules',description:'Keep exact quotations, applicability and conditions from original retrieved passages.'},
+ campaign_conflict_comparisons:{title:'Compare campaign decisions and rules',description:'Compare rules across all retrieval questions and explain compatibility or conflict.'},
+ campaign_conflict_challenge:{title:'Challenge conflict coverage',description:'Independently inspect the original brief and evidence for omitted decisions, rules and missed conflicts.'},
+ campaign_plan_verification:{title:'Verify the final plan',description:'Check the final outline against reviewed decisions before enabling approval.'},
+ campaign_plan_coverage_repair:{title:'Correct plan deviations',description:'Apply concrete corrections once, then show the revised plan.'},
  campaign_agent_step:{title:'Understand the campaign brief',description:'Read the request and campaign state, then choose the next tool.'},
  compact_campaign_context:{title:'Compact retrieved context',description:'Condense every retrieved chunk into attributed topic or channel context without resolving conflicts.'},
  campaign_requirements:{title:'Extract requested assets and constraints',description:'Read the full original conversation and record each requested deliverable, audience, date, byline, and constraint before planning searches.'},
@@ -73,9 +89,36 @@ function retrievalBranches(run:Run,activity:Activity|null) {
  }
  return {topic,channels,saved:!!saved};
 }
+const campaignStages = [
+ {title:'Understand brief',description:'Deliverables, audience, dates and constraints'},
+ {title:'Find evidence',description:'Search brand facts and channel guidance'},
+ {title:'Review issues',description:'Check rules, conflicts and evidence limitations'},
+ {title:'Build plan',description:'Create and verify the campaign plan'},
+ {title:'Write drafts',description:'Generate assets and check the finished copy'},
+];
+function stageIndex(operation:string) {
+ if(/generate|draft|asset_audit/.test(operation))return 4;
+ if(/conflict|decision_match|reconcil|question_review/.test(operation))return 2;
+ if(/retriev|compact|rule/.test(operation))return 1;
+ if(/plan|verification|coverage_repair/.test(operation))return 3;
+ return 0;
+}
+function CampaignFlow({runs,onSelect}:{runs:Run[];onSelect:(id:string,tab:DetailTab)=>void}) {
+ return <div className="campaign-flow" aria-label="Campaign stages">{campaignStages.map((stage,index)=>{
+  const items=runs.filter(run=>stageIndex(run.operation)===index);
+  const failed=items.some(run=>run.status==='failed');
+  const running=items.some(run=>!['completed','failed'].includes(run.status));
+  return <section className="campaign-flow-stage" key={stage.title}>
+   <span className="campaign-flow-number">{index+1}</span><h3>{stage.title}</h3><p>{stage.description}</p>
+   <small>{items.length?`${items.length} requests · ${failed?'Needs attention':running?'In progress':'Completed'}`:'Waiting'}</small>
+   {items.length>0&&<details><summary>View requests</summary>{items.map(run=><button key={run.id} onClick={()=>onSelect(run.id,run.error?'error':'response')}><span>{steps[run.operation]?.title??label(run.operation)}</span><small>{label(run.status)}</small></button>)}</details>}
+  </section>;
+ })}<p className="campaign-flow-note">Stages group recorded requests by purpose. Requests may revisit a stage. Rules guide the content; limitations describe evidence gaps; conflicts require a choice only when applicable requirements disagree.</p></div>;
+}
 type DetailTab='request'|'response'|'tools'|'error';
 function ActivityGraph({runs,activity,selected,onSelect}:{runs:Run[];activity:Activity|null;selected:string|undefined;onSelect:(id:string,tab:DetailTab)=>void}) {
  const [zoom,setZoom]=useState(1);
+ const [detailed,setDetailed]=useState(false);
  const graphRef=useRef<HTMLElement>(null);
  const [expanded,setExpanded]=useState(false);
  const [preview,setPreview]=useState<{id:string;tab:DetailTab}|null>(null);
@@ -104,8 +147,8 @@ function ActivityGraph({runs,activity,selected,onSelect}:{runs:Run[];activity:Ac
  const branchCount=Math.max(0,...runs.map(run=>{const branches=retrievalBranches(run,activity);return branches?1+Math.max(1,branches.channels.size):0;}));
  const width=Math.max(850,runs.length*340+80),height=branchCount?700+branchCount*220:650;
  return <section ref={graphRef} className={`activity-graph${expanded?' activity-graph-expanded':''}`} aria-label="Campaign activity graph" onMouseOver={event=>showPreview(event.target)} onFocusCapture={event=>showPreview(event.target)}>
-  <header className="activity-graph-toolbar"><div><strong>Execution map</strong><span>Hover or focus a node for details. Click to select.</span></div><div className="activity-graph-controls"><button aria-label="Zoom out" disabled={zoom<=0.5} onClick={()=>setZoom(z=>Math.max(0.5,z-0.1))}>−</button><output>{Math.round(zoom*100)}%</output><button aria-label="Zoom in" disabled={zoom>=1.5} onClick={()=>setZoom(z=>Math.min(1.5,z+0.1))}>+</button><button onClick={()=>setZoom(1)}>Reset</button><button aria-expanded={expanded} onClick={()=>void toggleFullscreen()}>{expanded?'Exit full screen':'Full screen ⛶'}</button></div></header>
-  <div className={`activity-graph-body${previewRun?' has-preview':''}`}><div className="activity-graph-viewport">{!runs.length?<div className="activity-graph-empty"><strong>Waiting for campaign activity</strong><p>Requests and tool calls will appear here as connected nodes.</p></div>:<div style={{width:width*zoom,height:height*zoom}}><div className="activity-graph-canvas" style={{width,height,transform:`scale(${zoom})`}}>
+  <header className="activity-graph-toolbar"><div><strong>Execution map</strong><span>Follow the campaign stages or expand the individual requests.</span></div><div className="activity-graph-controls"><button aria-pressed={detailed} onClick={()=>setDetailed(value=>!value)}>{detailed?'Show simple flow':'Show request map'}</button><button aria-label="Zoom out" disabled={zoom<=0.5} onClick={()=>setZoom(z=>Math.max(0.5,z-0.1))}>−</button><output>{Math.round(zoom*100)}%</output><button aria-label="Zoom in" disabled={zoom>=1.5} onClick={()=>setZoom(z=>Math.min(1.5,z+0.1))}>+</button><button onClick={()=>setZoom(1)}>Reset</button><button aria-expanded={expanded} onClick={()=>void toggleFullscreen()}>{expanded?'Exit full screen':'Full screen ⛶'}</button></div></header>
+  {!detailed?<CampaignFlow runs={runs} onSelect={onSelect}/>:<div className={`activity-graph-body${previewRun?' has-preview':''}`}><div className="activity-graph-viewport">{!runs.length?<div className="activity-graph-empty"><strong>Waiting for campaign activity</strong><p>Requests and tool calls will appear here as connected nodes.</p></div>:<div style={{width:width*zoom,height:height*zoom}}><div className="activity-graph-canvas" style={{width,height,transform:`scale(${zoom})`}}>
    <svg className="activity-graph-edges" width={width} height={height} aria-hidden="true"><defs><marker id="activity-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#ac96c7"/></marker></defs>{runs.map((r,i)=>{const x=40+i*340;return <g key={r.id}><path d={`M ${x+130} 140 V 175 M ${x+130} 275 V 310`}/>{i<runs.length-1&&<path className="activity-order-edge" d={`M ${x+260} 225 H ${x+340}`}/ >}{toolEvents(r).length>0&&<path d={`M ${x+260} 355 H ${x+285} V 465 H ${x+260}`}/>}</g>;})}</svg>
    {runs.map((r,i)=>{const x=40+i*340;const calls=toolEvents(r).filter(e=>e.type==='function_call');const requirements=r.operation==='campaign_requirements'&&r.status==='completed'?responseContent(r.response) as {assets?:{id:string;format:string;purpose:string;timing?:string}[]}:null;const assets=Array.isArray(requirements?.assets)?requirements.assets:[];return <div key={r.id}>
     <div className="activity-column-label" style={{left:x,top:20}}>REQUEST {String(i+1).padStart(2,'0')}</div>
@@ -131,15 +174,15 @@ function ActivityGraph({runs,activity,selected,onSelect}:{runs:Run[];activity:Ac
   {previewRun&&preview&&<aside className="activity-node-details" aria-label="Node details">
    <header><div><small>NODE DETAILS</small><h3>{steps[previewRun.operation]?.title??label(previewRun.operation)}</h3></div><button aria-label="Close node details" onClick={()=>setPreview(null)}>×</button></header>
    <p>{steps[previewRun.operation]?.description}</p>
-   <div className="activity-detail-metadata"><span>{previewRun.model}</span><span>{label(previewRun.status)}</span><span>{previewRun.duration_ms==null?'In progress':`${(previewRun.duration_ms/1000).toFixed(1)}s`}</span><span>{((previewRun.input_tokens??0)+(previewRun.output_tokens??0)).toLocaleString()} tokens</span><span>Cost: {previewRun.cost==null?'Unknown':`$${previewRun.cost}`}</span></div>
+   <div className="activity-detail-metadata"><span>{previewRun.model}</span><span>{label(previewRun.status)}</span><span>{previewRun.duration_ms==null?'In progress':`${(previewRun.duration_ms/1000).toFixed(1)}s`}</span><span>{((previewRun.input_tokens??0)+(previewRun.output_tokens??0)).toLocaleString()} tokens</span><span>Estimated cost: {formatCost(requestCost(previewRun.cost))}</span></div>
    <div className="inspector-tabs" role="group" aria-label="Node detail view">{(['request','response','tools','error'] as const).map(t=><button key={t} aria-pressed={preview.tab===t} onClick={()=>setPreview({...preview,tab:t})}>{t==='request'?'Input':t==='response'?'Output':t==='tools'?'Tools':'Errors'}</button>)}</div>
    <div className="activity-detail-content" key={`${preview.id}-${preview.tab}`}>
     {preview.tab==='request'?<><StepPreview request={previewRun.request}/><details><summary>Instructions and full request</summary><ReadableValue value={previewRun.request}/></details></>:preview.tab==='tools'?<ReadableValue value={toolEvents(previewRun)}/>:preview.tab==='error'?<ReadableValue value={previewRun.error}/>:previewRun.operation==='campaign_requirements'?<RequestedAssets runs={[previewRun]}/>:<ReadableValue value={responseContent(previewRun.response)}/>}
     <details className="inspector-raw"><summary>Raw JSON</summary><pre>{JSON.stringify(preview.tab==='tools'?toolEvents(previewRun):preview.tab==='request'?previewRun.request:preview.tab==='error'?previewRun.error:previewRun.response,null,2)}</pre></details>
    </div>
    <button className="activity-select-details" onClick={async()=>{if(expanded)await toggleFullscreen();onSelect(preview.id,preview.tab);requestAnimationFrame(()=>document.querySelector('.inspector-detail')?.scrollIntoView({behavior:'smooth',block:'start'}));}}>Select this step in inspector</button>
-  </aside>}</div>
-  <footer className="activity-graph-legend"><span>✦ Model request</span><span>⚒ Tool activity</span><span>↗ Output</span><span>Dashed arrows show recorded request order</span></footer>
+  </aside>}</div>}
+  <footer className="activity-graph-legend"><span>✦ Model request</span><span>⚒ Tool activity</span><span>↗ Output</span><span>{detailed?'Dashed arrows show recorded request order, not dependencies':'Expand a stage to inspect its requests'}</span></footer>
  </section>;
 }
 function RequestedAssets({runs}:{runs:Run[]}) {
@@ -164,39 +207,42 @@ export default function ProcessInspector({campaignId}:{campaignId:string}) {
   setRuns([]);setActivity(null);setSelected('');setError('');
   let alive=true;
   const controller=new AbortController();
-  let refreshing=false;
-  const refresh=async()=>{
-   if(refreshing)return;
-   refreshing=true;
+  const errors:Record<string,string>={};
+  const timers=new Set<ReturnType<typeof setTimeout>>();
+  const repeat=async<T,>(path:string,update:(value:T)=>void)=>{
    try {
-    const [response,evidence]=await Promise.all([fetch(`/api/campaigns/${campaignId}/runs`,{signal:controller.signal}),fetch(`/api/campaigns/${campaignId}/activity`,{signal:controller.signal})]);
-    if(!response.ok||!evidence.ok)throw Error('Could not load process steps and retrieval evidence');
-    const result=await response.json();
-    const activityResult=await evidence.json();
-    if(alive){setRuns(result);setActivity(activityResult);setError('');}
-   }catch(e){if(alive)setError(String(e));}finally{refreshing=false;}
+    const response=await fetch(`/api/campaigns/${campaignId}/${path}`,{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(15000)])});
+    if(!response.ok)throw Error(`HTTP ${response.status}`);
+    const result:T=await response.json();
+    if(alive){update(result);delete errors[path];setError(Object.values(errors).join(' '));}
+   }catch(e){if(alive){errors[path]=`Could not load ${path==='runs'?'model requests':'retrieval evidence'}: ${String(e)}. Retrying…`;setError(Object.values(errors).join(' '));}}
+   if(alive){const timer=setTimeout(()=>{timers.delete(timer);void repeat(path,update);},2000);timers.add(timer);}
   };
-  void refresh();
-  const timer=setInterval(()=>void refresh(),2000);
-  return()=>{alive=false;controller.abort();clearInterval(timer);};
+  void repeat<Run[]>('runs',setRuns);
+  void repeat<Activity>('activity',setActivity);
+  return()=>{alive=false;controller.abort();timers.forEach(clearTimeout);};
  },[campaignId]);
  const run=runs.find(r=>r.id===selected)||runs[runs.length-1];
  const step=run&&(steps[run.operation]??{title:label(run.operation),description:'Review what this step received and returned.'});
  const events=run?toolEvents(run):[];
  const content=run&&(tab==='response'?responseContent(run.response):tab==='error'?run.error:run.request);
+ const costs=runs.map(r=>requestCost(r.cost));
+ const pricedCosts=costs.filter((cost):cost is number=>cost!==null);
+ const totalCost=pricedCosts.length?pricedCosts.reduce((sum,cost)=>sum+cost,0):null;
+ const unpricedCount=costs.length-pricedCosts.length;
  return <main className="campaign-workspace inspector-page">
   <header className="inspector-page-heading"><a href={`/#campaigns/${encodeURIComponent(campaignId)}`}>← Campaign</a><span>Campaign ID: <code>{campaignId}</code></span></header>
   <div id="campaign-inspector" className="inspector-shell">
    <header className="inspector-heading"><div><h2>Campaign activity</h2><p>Explore model requests, tool calls, and results</p></div><span className="inspector-live">● Updating every 2s</span></header>
-   <div className="inspector-stats"><span><strong>{runs.length}</strong> LLM requests</span><span><strong>{runs.reduce((n,r)=>n+toolEvents(r).filter(e=>e.type==='function_call').length,0)}</strong> tool calls</span><span><strong>{runs.reduce((n,r)=>n+(r.input_tokens??0)+(r.output_tokens??0),0).toLocaleString()}</strong> tokens</span></div>
+   <div className="inspector-stats"><span><strong>{runs.length}</strong> LLM requests</span><span><strong>{runs.reduce((n,r)=>n+toolEvents(r).filter(e=>e.type==='function_call').length,0)}</strong> tool calls</span><span><strong>{runs.reduce((n,r)=>n+(r.input_tokens??0)+(r.output_tokens??0),0).toLocaleString()}</strong> tokens</span><span title="Sum of saved estimated model-request costs for this campaign, including retries. Updates every 2 seconds."><strong>{formatCost(totalCost)}</strong> estimated total (USD){unpricedCount>0&&<small className="inspector-cost-note">{pricedCosts.length?'Partial · ':''}{unpricedCount} request{unpricedCount===1?'':'s'} awaiting cost</small>}</span></div>
    {error&&<p role="alert">{error}</p>}
    {activity&&<InspectorEvidence activity={activity}/>}
    <ActivityGraph runs={runs} activity={activity} selected={run?.id} onSelect={(id,nextTab)=>{setSelected(id);setTab(nextTab);}}/>
    <div className="inspector-layout inspector-graph-layout">
-    {run&&step&&<article className="inspector-detail"><h3>{step.title}</h3><p>{step.description}</p><StepPreview request={run.request}/>
+    {run&&step&&<article className="inspector-detail"><h3>{step.title}</h3><p>{step.description}</p><p>Estimated request cost: <strong>{formatCost(requestCost(run.cost))}</strong></p><StepPreview request={run.request}/>
      <div className="inspector-tabs" role="group" aria-label="Request information">{(['response','request','tools','error'] as const).map(t=><button key={t} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t==='request'?'Full request':t==='response'?'Response':t==='tools'?'Tool calls & results':'Errors'}</button>)}</div>
      <div className="inspector-content">{tab==='tools'?(events.length?events.map((event,i)=><section key={i}><h4>{event.name||'Tool result'}</h4><ReadableValue value={event}/></section>):<p>No tool calls recorded in this request.</p>):tab==='error'&&!run.error?<p>No errors recorded.</p>:tab==='response'&&run.operation==='campaign_requirements'?<RequestedAssets runs={[run]}/>:<ReadableValue value={content}/>}</div>
-     <details key={`${run.id}-${tab}`} className="inspector-raw"><summary>Raw JSON and metadata</summary><p>Run: {run.id} · Estimated cost: {run.cost==null?'Unknown':`$${run.cost}`}</p><pre>{JSON.stringify(tab==='tools'?events:run[tab],null,2)}</pre></details>
+     <details key={`${run.id}-${tab}`} className="inspector-raw"><summary>Raw JSON and metadata</summary><p>Run: {run.id} · Estimated cost: {formatCost(requestCost(run.cost))}</p><pre>{JSON.stringify(tab==='tools'?events:run[tab],null,2)}</pre></details>
     </article>}
    </div>
   </div>

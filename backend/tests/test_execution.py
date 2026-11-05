@@ -124,7 +124,7 @@ def test_wickhold_corrections_proceed_with_five_angles(workspace, monkeypatch):
         if request.operation == "campaign_message_route":
             return SimpleNamespace(parsed=api.MessageRoute(target_asset_id=None, route="campaign", reply=""), run_id="route")
         if request.operation == "campaign_plan_check":
-            return SimpleNamespace(parsed=api.PlanCheck(violations=[], supported_correction_available=False), run_id="check")
+            return SimpleNamespace(parsed=api.PlanCheck(findings=[]), run_id="check")
         assert "Never ask whether to use a corrected claim" in request.instructions
         return SimpleNamespace(parsed=api.PlanOutline(goal="Five posts", questions=[],
             assumptions=[], constraints=wording, assets=[api.PlannedAsset(

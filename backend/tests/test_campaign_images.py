@@ -87,3 +87,44 @@ def test_save_image_changes_only_target_and_rejects_unknown(tmp_path, monkeypatc
             assert error.value.status_code == 422
     finally:
         engine.dispose()
+
+
+def test_add_images_preserves_attachments_and_reports_gaps(tmp_path, monkeypatch):
+    from sqlalchemy.orm import Session
+    from app.api import campaigns
+    from app.config import Settings
+    from app.db import create_database_engine, initialize_database
+    engine = create_database_engine(f'sqlite:///{tmp_path}/images.db')
+    initialize_database(engine)
+    monkeypatch.setattr(campaigns, 'image_catalog', lambda *a: (None, []))
+    monkeypatch.setattr(campaigns, 'load_asset_package', lambda *a: {})
+    with Session(engine) as session:
+        c = campaigns.Campaign(id='c', brand_id='b', data={
+            'plans': [{'assets': [{'id': 'a'}, {'id': 'b'}]}],
+            'generation': {'drafts': [
+                {'asset_id': 'a', 'plan_index': 0, 'image': {'image_id': 'keep'}},
+                {'asset_id': 'b', 'plan_index': 0}]}})
+        session.add(c)
+        session.commit()
+        output = campaigns.add_campaign_images(session, c, Settings(_env_file=None), [], False, 'Follow brief')
+        assert [r['status'] for r in output['results']] == ['preserved', 'no_suitable_image']
+        assert c.data['generation']['drafts'][0]['image']['image_id'] == 'keep'
+    engine.dispose()
+
+
+def test_catalog_resolves_duplicate_host_container_brand(tmp_path):
+    root = tmp_path / 'images'
+    root.mkdir()
+    (root / 'photo.jpg').write_bytes(b'image')
+    (root / 'metadata.json').write_text(json.dumps([
+        {'id': 'photo', 'filename': 'photo.jpg', 'usage_rights': 'Brand owned'}]))
+    brand = SimpleNamespace(name='Wickhold', source_directory='/missing/container/mount')
+    peer = SimpleNamespace(name='Wickhold', source_directory=str(tmp_path))
+    session = SimpleNamespace(get=lambda *args: brand,
+        scalars=lambda *args: SimpleNamespace(all=lambda: [brand, peer]))
+    _, records = image_catalog(session, SimpleNamespace(brand_id='b'),
+        SimpleNamespace(magi_image_directory='images', magi_brand_source_dir=tmp_path))
+    assert [r['id'] for r in records] == ['photo']
+    peer.name = 'Unrelated brand'
+    assert image_catalog(session, SimpleNamespace(brand_id='b'),
+        SimpleNamespace(magi_image_directory='images', magi_brand_source_dir=tmp_path))[1] == []

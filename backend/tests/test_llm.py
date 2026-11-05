@@ -450,3 +450,35 @@ def test_tool_choice_is_sent_and_logged(engine, choice):
         assert saved(engine).request_body == body
     finally:
         tracked.close()
+
+
+def test_per_request_timeout_is_applied_and_logged(engine):
+    tracked, sdk, calls = setup_client(engine)
+    try:
+        tracked.run(request(timeout_seconds=300))
+        assert calls[0].extensions['timeout']['read'] == 300
+        assert saved(engine).timeout_seconds == 300
+        assert 'timeout_seconds' not in saved(engine).request_body
+    finally:
+        sdk.close()
+
+
+def test_connection_failure_logs_underlying_cause_without_credentials(engine):
+    def handler(req):
+        try:
+            raise OSError(111, 'Connection refused ' + KEY)
+        except OSError as cause:
+            raise httpx.ConnectError('transport failed', request=req) from cause
+
+    tracked, sdk, calls = setup_client(engine, handler=handler)
+    try:
+        with pytest.raises(ModelRunError):
+            tracked.run(request())
+        error = saved(engine).error
+        assert [e['type'] for e in error['exception_chain']] == ['APIConnectionError', 'ConnectError', 'ConnectionRefusedError']
+        assert error['root_cause']['errno'] == 111
+        assert KEY not in json.dumps(error)
+        assert error['endpoint']['host'] == 'api.openai.com'
+        assert len(calls) == 1
+    finally:
+        sdk.close()

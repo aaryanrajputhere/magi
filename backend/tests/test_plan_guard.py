@@ -1,171 +1,199 @@
-"""The plan gate checks original evidence even if the earlier review was wrong."""
+"""Audits must route decisions to questions and validate claimed defects."""
 import json
 from types import SimpleNamespace
 
 import pytest
 
-from app.api.campaigns import CorrectedPlanOutline, PlanCheck, PlanOutline, validate_campaign_plan
+from app.api.campaigns import PlanOutline, validate_campaign_plan
+from app.brand.plan_audit import AuditFinding, PlanCheck, PlanNeedsDecision, PlanAuditFailure
 from app.config import Settings
 
 
-def outline(question):
-    return PlanOutline(goal="Two security posts for May 2027", assumptions=[], constraints=[],
-                       questions=[question] if question else [], assets=[])
+def outline():
+    return PlanOutline(goal='Regulated teams campaign', assumptions=[], constraints=[], questions=[], assets=[{
+        'id': 'post', 'format': 'linkedin', 'audience': 'Security leaders', 'purpose': 'Explain trust',
+        'angle': 'Verified status', 'hook': 'Wickhold is pursuing FedRAMP Moderate authorization',
+        'cta': 'Book a demo', 'timing': '2027-02-16'}]).model_dump()
 
 
-@pytest.mark.parametrize("repair_passes", [True, False])
-def test_prohibited_statistic_question_is_repaired_and_rechecked(repair_passes):
-    original = outline("Should both posts include the 68% statistic?")
-    repaired = outline("Shall I proceed without report statistics?")
-    evidence = [{"chunk_id": "policy", "content": "Market statistics expire after 12 months."}]
-    # Deliberately incorrect prior review: the gate must also see original evidence.
-    reviewed = {"report": {"supported": [{"text": "68% is allowed"}]}, "evidence": evidence}
-    requests = []
-
-    class Client:
-        def run(self, request, **kwargs):
-            requests.append(request)
-            payload = json.loads(request.input)
-            assert payload["source_evidence"] == evidence
-            if request.operation == "campaign_plan_repair":
-                assert payload["violations"]
-                return SimpleNamespace(parsed=repaired)
-            assert kwargs["output_model"] is PlanCheck
-            assert "conversation" not in payload
-            assert "BRAND COMPLIANCE audit" in request.instructions
-            if len(requests) == 1:
-                assert payload["candidate_plan"] == original.model_dump()
-            else:
-                assert payload["candidate_plan"] == repaired.model_dump()
-            violations = [] if len(requests) == 3 and repair_passes else ["Requested statistic is expired; ask about omission."]
-            return SimpleNamespace(parsed=PlanCheck(violations=violations, supported_correction_available=False))
-
-    args = (Client(), Settings(_env_file=None), SimpleNamespace(id="c", brand_id="b"),
-            [{"role": "user", "text": "Use 68% in May 2027"}], reviewed, original.model_dump())
-    if repair_passes:
-        result = validate_campaign_plan(*args)
-        assert result["questions"] == repaired.questions
-        assert result["assets"] == []
-    else:
-        result = validate_campaign_plan(*args)
-        assert result["assets"] == []
-        assert len(result["questions"]) == 1
-        assert "reframe" in result["questions"][0]
-        assert "68%" not in json.dumps(result)
-        assert result["goal"] != original.goal
-    expected = ["campaign_plan_check", "campaign_plan_repair", "campaign_plan_check"]
-    if not repair_passes:
-        expected += ["campaign_plan_repair", "campaign_plan_check"]
-    assert [r.operation for r in requests] == expected
+def finding(status='pass', **changes):
+    return AuditFinding(**(dict(status=status, field='/assets/0/hook',
+        candidate_quote='Wickhold is pursuing FedRAMP Moderate authorization',
+        explanation='The candidate uses the selected wording', source_quotes=[],
+        correction=None, question=None, options=[]) | changes))
 
 
-def test_valid_plan_requires_no_repair():
+def campaign():
+    return SimpleNamespace(id='c', brand_id='b', data={'questions': [{
+        'id': 'fedramp', 'text': 'Which FedRAMP wording?', 'options': ['Use pursuing authorization'],
+        'answer': 'Use pursuing authorization'}]})
+
+
+def test_pass_findings_do_not_block_or_repair():
     calls = []
-
     class Client:
         def run(self, request, **kwargs):
             calls.append(request.operation)
-            return SimpleNamespace(parsed=PlanCheck(violations=[], supported_correction_available=False))
+            payload = json.loads(request.input)
+            assert payload['current_decisions'][0]['answer'] == 'Use pursuing authorization'
+            return SimpleNamespace(parsed=PlanCheck(findings=[finding(), finding(
+                field='/assets/0/cta', candidate_quote='Book a demo', explanation='CTA is correct')]))
+    plan = outline()
+    assert validate_campaign_plan(Client(), Settings(_env_file=None), campaign(), [],
+                                  {'evidence': [], 'requirements': {}}, plan) == plan
+    assert calls == ['campaign_plan_check']
 
-    plan = outline("Shall I proceed without report statistics?").model_dump()
-    assert validate_campaign_plan(Client(), Settings(_env_file=None),
-        SimpleNamespace(id="c", brand_id="b"), [], {"report": {}, "evidence": []}, plan) == plan
-    assert calls == ["campaign_plan_check"]
 
-
-def test_failed_launch_repair_returns_clarification_without_rejected_copy():
-    unsafe = PlanOutline(goal="Announce general availability", assumptions=[], constraints=[],
-                         questions=["Which launch date?"], assets=[])
-
+def test_audit_customer_clearance_becomes_question_without_repair():
+    plan = outline()
+    plan['assets'][0]['hook'] = 'Vaskell Health cut audit prep by three weeks'
+    calls = []
     class Client:
         def run(self, request, **kwargs):
-            if request.operation == "campaign_plan_repair":
-                return SimpleNamespace(parsed=unsafe)
-            return SimpleNamespace(parsed=PlanCheck(violations=[
-                "The product is early access; general availability is not approved."], supported_correction_available=False))
+            calls.append(request.operation)
+            if request.operation == 'campaign_decision_match':
+                return SimpleNamespace(parsed=kwargs['output_model'].model_validate({'matches': [{
+                    'finding_index': 0, 'decision_id': None, 'disposition': 'new',
+                    'reason': 'Customer permission differs from FedRAMP status',
+                    'changed_source_ids': [], 'changed_user_instruction': None}]}))
+            return SimpleNamespace(parsed=PlanCheck(findings=[finding('user_decision_needed',
+                candidate_quote=plan['assets'][0]['hook'], explanation='Customer external use is on hold',
+                source_quotes=[{'source_id': 'legal', 'quote': 'Not cleared for external use'}],
+                question='How should we handle the customer story?', options=['Omit it', 'Keep it pending clearance'])]))
+    with pytest.raises(PlanNeedsDecision) as result:
+        validate_campaign_plan(Client(), Settings(_env_file=None), campaign(), [],
+            {'evidence': [{'chunk_id': 'legal', 'content': 'Not cleared for external use'}]}, plan)
+    assert result.value.findings[0]['affected_asset_ids'] == ['post']
+    assert result.value.candidate == plan
+    assert 'campaign_plan_repair' not in calls
 
-    result = validate_campaign_plan(Client(), Settings(_env_file=None),
-        SimpleNamespace(id="c", brand_id="b"), [],
-        {"report": {}, "evidence": [{"content": "Early access; no announced GA date."}]},
-        unsafe.model_dump())
-    assert result["assets"] == []
-    assert len(result["questions"]) == 1
-    assert "general availability" not in json.dumps(result)
-    assert "Which launch date" not in json.dumps(result)
-    assert "supported by the brand guidance" in result["questions"][0]
 
-
-def test_approved_status_correction_proceeds_without_permission_question():
-    candidate = outline("May I use the approved early-access wording instead?")
-    approved = PlanOutline(goal="Early-access awareness", assumptions=[],
-        constraints=["Use early access; no general availability announcement is supported."],
-        questions=[], assets=[{
-            "id": f"post-{i}", "format": "linkedin", "audience": "Platform teams",
-            "purpose": "Explain approved tool-call controls", "angle": f"Control example {i}",
-            "hook": f"Consider tool-call boundary {i}", "cta": "Contact us",
-            "timing": f"2027-01-{25+i}",
-        } for i in range(1, 6)])
-    operations = []
-
+@pytest.mark.parametrize('bad', [
+    {'field': '/assets/99/hook'}, {'candidate_quote': 'Wickhold is FedRAMP Authorized'},
+    {'source_quotes': [{'source_id': 'invented', 'quote': 'Unknown'}]},
+])
+def test_bad_audit_references_retry_the_audit_not_the_plan(bad):
+    calls = []
     class Client:
         def run(self, request, **kwargs):
-            operations.append(request.operation)
-            if request.operation == "campaign_plan_repair":
-                assert kwargs["output_model"] is CorrectedPlanOutline
-                assert "requested number of outlines with questions=[]" in request.instructions
-                assert "do not invent a new early-access launch date" in request.instructions
-                return SimpleNamespace(parsed=approved)
-            assert "asking permission to use approved early-access wording" in request.instructions
-            return SimpleNamespace(parsed=PlanCheck(violations=(
-                ["Use approved status directly instead of asking permission"] if len(operations) == 1 else []),
-                supported_correction_available=True))
-
-    result = validate_campaign_plan(Client(), Settings(_env_file=None),
-        SimpleNamespace(id="c", brand_id="b"), [],
-        {"report": {}, "evidence": [{"content": "Product remains in early access."}]},
-        candidate.model_dump())
-    assert result["questions"] == []
-    assert len(result["assets"]) == 5
-    assert [asset["timing"] for asset in result["assets"]] == [f"2027-01-{day}" for day in range(26, 31)]
-    assert "early access" in result["constraints"][0]
+            calls.append(request.operation)
+            if len(calls) == 1:
+                return SimpleNamespace(parsed=PlanCheck(findings=[finding('repair_needed',
+                    correction='Fix wording', **bad)]))
+            assert json.loads(request.input)['validation_feedback']
+            return SimpleNamespace(parsed=PlanCheck(findings=[]))
+    plan = outline()
+    assert validate_campaign_plan(Client(), Settings(_env_file=None), campaign(), [],
+                                  {'evidence': []}, plan) == plan
+    assert calls == ['campaign_plan_check', 'campaign_plan_check']
 
 
-def test_corrected_plan_schema_disallows_confirmation_questions():
-    from pydantic import ValidationError
-
-    from app.llm.client import strict_output_schema
-
-    schema = strict_output_schema(CorrectedPlanOutline)["format"]["schema"]
-    strict_output_schema(PlanCheck)
-    assert schema["properties"]["questions"]["maxItems"] == 0
-    assert schema["properties"]["assets"]["minItems"] == 1
-    with pytest.raises(ValidationError):
-        CorrectedPlanOutline(**outline("May I use approved wording?").model_dump())
-
-
-def test_corrected_outlines_get_wording_repair_without_reopening_questions():
-    plan = outline(None).model_dump()
-    plan['assets'] = [{
-        'id': 'post-1', 'format': 'linkedin', 'audience': 'Platform teams',
-        'purpose': 'Explain runtime policy', 'angle': 'Runtime boundaries',
-        'hook': 'Product, in early access, applies runtime tool-call policy.',
-        'cta': 'Contact the account team', 'timing': '2027-01-26',
-    }]
-    operations = []
-
+def test_repeated_invalid_audit_keeps_candidate_and_specific_error():
     class Client:
         def run(self, request, **kwargs):
-            operations.append(request.operation)
+            return SimpleNamespace(parsed=PlanCheck(findings=[finding(field='/missing')]))
+    plan = outline()
+    with pytest.raises(PlanAuditFailure, match='invalid references twice') as failure:
+        validate_campaign_plan(Client(), Settings(_env_file=None), campaign(), [], {'evidence': []}, plan)
+    assert failure.value.candidate == plan
+    assert len(failure.value.audit_history) == 2
+
+
+def test_no_progress_repair_stops_after_one_attempt():
+    calls = []
+    class Client:
+        def run(self, request, **kwargs):
+            calls.append(request.operation)
             if request.operation == 'campaign_plan_repair':
-                assert kwargs['output_model'] is CorrectedPlanOutline
-                return SimpleNamespace(parsed=CorrectedPlanOutline(**plan))
-            assert 'This is an OUTLINE, not final public copy' in request.instructions
-            return SimpleNamespace(parsed=PlanCheck(
-                violations=['Fix a public hook qualifier'] if len(operations) < 5 else [],
-                supported_correction_available=False))
+                assert json.loads(request.input)['current_decisions']
+                return SimpleNamespace(parsed=PlanOutline.model_validate(outline()))
+            return SimpleNamespace(parsed=PlanCheck(findings=[finding('repair_needed', correction='Use the chosen wording')]))
+    with pytest.raises(PlanAuditFailure, match='no progress'):
+        validate_campaign_plan(Client(), Settings(_env_file=None), campaign(), [], {'evidence': []}, outline())
+    assert calls == ['campaign_plan_check', 'campaign_plan_repair']
 
-    result = validate_campaign_plan(Client(), Settings(_env_file=None),
-        SimpleNamespace(id='c', brand_id='b'), [], {'report': {}, 'evidence': []}, plan)
-    assert result['questions'] == []
-    assert len(result['assets']) == 1
-    assert operations.count('campaign_plan_repair') == 2
+
+def test_concrete_repair_is_rechecked_with_same_decisions():
+    calls = []
+    fixed = outline()
+    fixed['assets'][0]['cta'] = 'Read the report'
+    class Client:
+        def run(self, request, **kwargs):
+            calls.append(request.operation)
+            assert json.loads(request.input)['current_decisions']
+            if request.operation == 'campaign_plan_repair':
+                return SimpleNamespace(parsed=PlanOutline.model_validate(fixed))
+            return SimpleNamespace(parsed=PlanCheck(findings=[finding('repair_needed',
+                field='/assets/0/cta', candidate_quote='Book a demo', correction='Use Read the report')]
+                if len(calls) == 1 else []))
+    assert validate_campaign_plan(Client(), Settings(_env_file=None), campaign(), [],
+                                  {'evidence': []}, outline()) == fixed
+    assert calls == ['campaign_plan_check', 'campaign_plan_repair', 'campaign_plan_check']
+
+
+def test_schemas_are_strict():
+    from app.llm.client import strict_output_schema
+    strict_output_schema(PlanCheck)
+
+
+def test_answered_audit_question_is_reclassified_instead_of_repeated():
+    operations = []
+    class Client:
+        def run(self, request, **kwargs):
+            operations.append(request.operation)
+            if request.operation == 'campaign_decision_match':
+                return SimpleNamespace(parsed=kwargs['output_model'].model_validate({'matches': [dict(
+                    finding_index=0, decision_id='fedramp', disposition='resolved',
+                    reason='User already selected pursuing', changed_source_ids=[], changed_user_instruction=None)]}))
+            if operations.count('campaign_plan_check') == 1:
+                return SimpleNamespace(parsed=PlanCheck(findings=[finding('user_decision_needed',
+                    question='Authorized or pursuing?', options=['Authorized', 'Pursuing'])]))
+            assert json.loads(request.input)['validation_feedback']
+            return SimpleNamespace(parsed=PlanCheck(findings=[finding()]))
+    plan = outline()
+    assert validate_campaign_plan(Client(), Settings(_env_file=None), campaign(), [], {'evidence': []}, plan) == plan
+    assert operations == ['campaign_plan_check', 'campaign_decision_match', 'campaign_plan_check']
+
+
+def test_provider_schema_selects_existing_fields_and_server_copies_quotes():
+    from pydantic import ValidationError
+    from app.brand.plan_audit import audit_schema, cited_check, coverage_errors
+    from app.llm.client import strict_output_schema
+    plan = outline()
+    evidence = [{'chunk_id': 'legal', 'content': 'An exact original passage.'}]
+    schema = audit_schema(plan, evidence)
+    strict_output_schema(schema)
+    item = {'status': 'pass', 'field': '/assets/0/hook', 'explanation': 'Supported',
+            'source_ids': ['legal'], 'correction': None, 'question': None, 'options': []}
+    coverage = {'source_0': {'status': 'consistent', 'reason': 'Applicable', 'finding_indices': [0]}}
+    parsed = schema.model_validate({'findings': [item], 'source_checks': coverage})
+    check = cited_check(parsed, plan, evidence)
+    assert check.findings[0].candidate_quote == plan['assets'][0]['hook']
+    assert check.findings[0].source_quotes[0].quote == evidence[0]['content']
+    assert coverage_errors(parsed, evidence) == []
+    for bad in [{'field': '/assets/0/subject_line'}, {'source_ids': ['document-id']}]:
+        with pytest.raises(ValidationError):
+            schema.model_validate({'findings': [{**item, **bad}], 'source_checks': coverage})
+    parsed = schema.model_validate({'findings': [], 'source_checks': {'source_0':
+        {**coverage['source_0'], 'status': 'conflict', 'finding_indices': []}}})
+    assert coverage_errors(parsed, evidence) == []
+    fallback = cited_check(parsed, plan, evidence)
+    assert fallback.findings[0].status == 'user_decision_needed'
+    assert fallback.findings[0].question
+
+
+def test_source_conflict_cannot_be_sent_to_editorial_repair():
+    from app.brand.plan_audit import audit_schema, cited_check
+    plan = {'goal': 'Feature the customer story', 'assets': []}
+    evidence = [{'chunk_id': 'hold', 'content': 'Customer quote is not cleared.'}]
+    parsed = audit_schema(plan, evidence).model_validate({
+        'findings': [{'status': 'repair_needed', 'field': '/goal',
+                      'explanation': 'Customer clearance needs a decision.',
+                      'correction': 'Obtain clearance or omit the story.',
+                      'question': None, 'options': [], 'source_ids': ['hold']}],
+        'source_checks': {'source_0': {'status': 'conflict',
+                                     'reason': 'Publication hold', 'finding_indices': [0]}}})
+    finding = cited_check(parsed, plan, evidence).findings[0]
+    assert finding.status == 'user_decision_needed'
+    assert finding.question and len(finding.options) >= 2
+    assert finding.correction is None

@@ -63,6 +63,7 @@ export default function AssetPreview({ drafts, brandName, generating, error, rev
     } catch (error) { setImageError(String(error)); } finally { setSavingImage(false); }
   }
   async function openImages() {
+    setImageError('');
     try {
       const response = await fetch(`/api/campaigns/${campaignId}/images`);
       if (!response.ok) throw new Error('Unable to load brand images');
@@ -163,7 +164,7 @@ export default function AssetPreview({ drafts, brandName, generating, error, rev
       {selected.format !== 'x' && <><MarkdownCopy body={selected.body}/><small>{selected.body.split(/\s+/).filter(Boolean).length + selected.title.split(/\s+/).filter(Boolean).length} words</small></>}
     </article>}
     </div>
-    {selected && !selected.image && ['linkedin', 'email', 'x', 'blog', 'landing_page'].includes(selected.format) && campaignId && <div className="image-controls"><button onClick={openImages} disabled={savingImage}>Add image</button>{imageError && <p role="alert">{imageError}</p>}{library && <section aria-label="Brand image picker"><button onClick={() => setLibrary(null)}>Close picker</button><div className="image-library">{library.map(image => <button key={image.id} disabled={savingImage} onClick={() => chooseImage(image.id)}><img loading="lazy" src={`/api/campaigns/${campaignId}/images/${encodeURIComponent(image.id)}`} alt={image.description || image.title}/><span>{image.title}</span></button>)}</div>{!library.length && <p>No eligible brand images available.</p>}</section>}</div>}
+    {selected && ['linkedin', 'email', 'x', 'blog', 'landing_page'].includes(selected.format) && campaignId && <div className="image-controls"><button onClick={openImages} disabled={savingImage}>{selected.image ? 'Change image' : 'Add image'}</button>{selected.image && <button onClick={() => chooseImage(null)} disabled={savingImage}>Remove image</button>}{imageError && <p role="alert">{imageError}</p>}{library && <section aria-label="Brand image picker"><button onClick={() => setLibrary(null)}>Close picker</button><div className="image-library">{library.map(image => <button key={image.id} disabled={savingImage} onClick={() => chooseImage(image.id)}><img loading="lazy" src={`/api/campaigns/${campaignId}/images/${encodeURIComponent(image.id)}`} alt={image.description || image.title}/><span>{image.title}</span></button>)}</div>{!library.length && <p>No eligible brand images available.</p>}</section>}</div>}
 
   </aside>;
 }

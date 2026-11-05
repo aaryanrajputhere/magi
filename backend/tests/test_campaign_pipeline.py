@@ -28,7 +28,7 @@ def launch_requirements():
     return {'topic': 'Leashgate launch status, scope and tool-call boundaries',
             'topic_details': [{'heading': 'Campaign context', 'content': 'Launch on January 26, 2027; no external announcement before launch.'}],
             'constraints': ['No borrowed customer proof', 'No early-access screenshots'],
-            'unknowns': [], 'assets': [
+            'unknowns': [], 'issues': [], 'assets': [
                 {'id': f'launch-{i}', 'format': format, 'audience': f'Audience {i}',
                  'purpose': f'Deliverable {i}', 'timing': '2027-01-26',
                  'sender_or_byline': 'Maren' if i == 4 else None,
@@ -214,8 +214,11 @@ def test_plan_repair_and_persisted_packages_end_to_end(workspace, monkeypatch):
     def run(self, request, **kwargs):
         operations.append(request.operation)
         strict_output_schema(kwargs['output_model'])
+        if request.operation == 'campaign_conflict_review':
+            from app.brand.conflicts import Findings
+            return SimpleNamespace(parsed=Findings(conflicts=[]), run_id='conflicts')
         if request.operation == 'campaign_plan_check':
-            return SimpleNamespace(parsed=api.PlanCheck(violations=[], supported_correction_available=False), run_id='check')
+            return SimpleNamespace(parsed=api.PlanCheck(findings=[]), run_id='check')
         plan = outline(requirements)
         if request.operation == 'campaign_plan':
             payload = json.loads(request.input)
@@ -240,13 +243,13 @@ def test_plan_repair_and_persisted_packages_end_to_end(workspace, monkeypatch):
         assert len(saved['plans'][-1]['asset_packages']) == 11
         assert len(saved['requirements']['assets']) == 11
         assert 'generation' not in saved
-        assert operations == ['campaign_plan', 'campaign_deliverables_repair']
+        assert operations == ['campaign_conflict_review', 'campaign_plan', 'campaign_deliverables_repair', 'campaign_conflict_review', 'campaign_plan_check']
         session.expire_all()
         assert len(api.load(session, 'c').data['plans'][-1]['assets']) == 11
 
 
 @pytest.mark.parametrize('repair_succeeds', [True, False])
-def test_generation_audits_scoped_package_before_completing(workspace, monkeypatch, repair_succeeds):
+def test_generation_completes_without_post_generation_conflict_review(workspace, monkeypatch, repair_succeeds):
     requirements = launch_requirements()
     requirements['assets'] = [requirements['assets'][4]]  # One X asset.
     combined = reviewed_tracks(requirements)
@@ -347,3 +350,151 @@ def test_compact_audit_pass_findings_do_not_block_draft():
         {'id': 'asset'}, {'body': 'Draft'}, {'mode': 'compact'})
     assert violations == ['Remove placeholder URL.']
     assert run_id == 'audit'
+
+
+def test_audit_conflict_is_persisted_as_question_then_answer_resumes(workspace, monkeypatch):
+    from app.brand.conflicts import Findings
+    from app.brand.plan_audit import AuditFinding
+    from app.brand.decisions import record_answer
+    requirements = launch_requirements()
+    requirements['assets'] = [requirements['assets'][0]]
+    combined = reviewed_tracks(requirements)
+    # Feed a deliberate customer-permission conflict missed by the first reviewer.
+    combined['evidence'].append({'chunk_id': 'legal', 'content': 'Vaskell is not cleared for external use.'})
+    candidate = outline(requirements)
+    candidate['assets'][0]['hook'] = 'Vaskell cut audit preparation by three weeks'
+    monkeypatch.setattr(api, 'plan_retrieval', lambda *a, **k: {'id': 'search', 'plan': {}, 'requirements': requirements})
+    monkeypatch.setattr(api, 'execute_retrieval', lambda *a, **k: {'id': 'retrieved'})
+    monkeypatch.setattr(api, 'compact_tracks', lambda *a, **k: combined)
+    monkeypatch.setattr(api, 'load_artifact', lambda *a, **k: combined)
+    phases = []
+
+    def run(self, request, **kwargs):
+        phases.append(request.operation)
+        if request.operation == 'campaign_plan':
+            return SimpleNamespace(parsed=api.PlanOutline.model_validate(candidate), run_id='plan')
+        if request.operation == 'campaign_conflict_review':
+            return SimpleNamespace(parsed=Findings(conflicts=[]), run_id='review')
+        assert request.operation == 'campaign_plan_check'
+        payload = json.loads(request.input)
+        if payload['current_decisions']:
+            assert payload['current_decisions'][0]['answer'] == 'Keep customer story'
+            return SimpleNamespace(parsed=api.PlanCheck(findings=[]), run_id='check-answered')
+        return SimpleNamespace(parsed=api.PlanCheck(findings=[AuditFinding(
+            status='user_decision_needed', field='/assets/0/hook', candidate_quote=candidate['assets'][0]['hook'],
+            explanation='The requested Vaskell customer story is subject to an external-use hold.',
+            source_quotes=[{'source_id': 'legal', 'quote': 'Vaskell is not cleared for external use.'}],
+            correction=None, question='How should the plan handle Vaskell?',
+            options=['Omit customer story', 'Keep customer story'])]), run_id='check-needs-decision')
+
+    monkeypatch.setattr(api.TrackedOpenAI, 'run', run)
+    with Session(workspace) as session:
+        session.add(api.Campaign(id='c', brand_id='b', data={'messages': [], 'plans': []}))
+        session.commit()
+        body = api.Message(text='Build the campaign', version=0)
+        route = api.MessageRoute(route='campaign', target_asset_id=None, reply='')
+        saved = api.process_message('c', body, session, Settings(_env_file=None), forced_route=route)
+        assert saved['state'] == 'clarifying'
+        assert saved['plans'] == []
+        assert saved['pending_candidate'] == candidate
+        assert saved['plan_audit_history'][0]['run_id'] == 'check-needs-decision'
+        question = saved['pending_question']
+        session.expire_all()
+        campaign = api.load(session, 'c')
+        assert campaign.data['pending_question']['id'] == question['id']
+        record_answer(campaign, question, 'Keep customer story')
+        session.commit()
+        saved = api.process_message('c', api.Message(text='Keep customer story', version=campaign.version),
+            session, Settings(_env_file=None), forced_route=route)
+        assert saved['state'] == 'awaiting_approval'
+        assert saved['pending_question'] is None
+        assert len(saved['plans']) == 1
+        assert 'pending_candidate' not in saved
+        assert 'campaign_plan_repair' not in phases
+
+
+def test_collects_both_conflicts_then_answers_queue_before_any_plan(workspace, monkeypatch):
+    from app.brand.conflicts import Finding, Findings
+    requirements = launch_requirements()
+    requirements['assets'] = requirements['assets'][:1]
+    combined = reviewed_tracks(requirements)
+    operations = []
+    retrievals = []
+    def search(*args, **kwargs):
+        retrievals.append('search')
+        return {'id': 'search', 'plan': {}, 'requirements': requirements}
+    monkeypatch.setattr(api, 'plan_retrieval', search)
+    monkeypatch.setattr(api, 'execute_retrieval', lambda *a, **k: {'id': 'retrieved'})
+    monkeypatch.setattr(api, 'compact_tracks', lambda *a, **k: combined)
+    monkeypatch.setattr(api, 'load_artifact', lambda *a, **k: combined)
+
+    def run(self, request, **kwargs):
+        operations.append(request.operation)
+        payload = json.loads(request.input)
+        if request.operation == 'campaign_message_route':
+            return SimpleNamespace(parsed=api.MessageRoute(route='campaign', target_asset_id=None, reply=''), run_id='route')
+        if request.operation == 'campaign_conflict_review':
+            if payload['candidate'] is not None:
+                return SimpleNamespace(parsed=Findings(conflicts=[]), run_id='review')
+            assert payload['requirements'] == requirements
+            findings = [Finding(explanation=f'{topic} conflicts with the brief',
+                statements=[f'Requested {topic} approach', f'Source {topic} guidance'], source_ids=['topic'], affected_asset_ids=[],
+                question=f'How should we handle {topic}?', options=[f'Follow {topic} guidance', f'Keep {topic} request'])
+                for topic in ('status', 'customer')]
+            return SimpleNamespace(parsed=Findings(conflicts=findings), run_id='intake')
+        if request.operation == 'campaign_plan':
+            assert len(payload['current_decisions']) == 2
+            return SimpleNamespace(parsed=api.PlanOutline.model_validate(outline(requirements)), run_id='plan')
+        if request.operation == 'campaign_plan_check':
+            return SimpleNamespace(parsed=api.PlanCheck(findings=[]), run_id='audit')
+        raise AssertionError(request.operation)
+
+    monkeypatch.setattr(api.TrackedOpenAI, 'run', run)
+    settings = Settings(_env_file=None, magi_campaign_agent_enabled=False)
+    with Session(workspace) as session:
+        session.add(api.Campaign(id='c', brand_id='b', data={'messages': [], 'plans': []}))
+        session.commit()
+        route = api.MessageRoute(route='campaign', target_asset_id=None, reply='')
+        first = api.process_message('c', api.Message(text='Build campaign', version=0), session, settings, forced_route=route)
+        assert first['state'] == 'clarifying'
+        assert len(first['conflicts']) == 2
+        assert len(first['questions']) == 1
+        assert first['plans'] == []
+        assert operations == ['campaign_conflict_review']
+        q1 = first['pending_question']
+        session.expire_all()
+        second = api.message('c', api.Message(text=q1['options'][0], question_id=q1['id'],
+                             version=first['version']), session, settings)
+        assert second['state'] == 'clarifying'
+        assert second['pending_question']['id'] != q1['id']
+        assert len(second['questions']) == 2
+        assert second['plans'] == []
+        assert operations == ['campaign_conflict_review']
+        session.expire_all()
+        q2 = second['pending_question']
+        final = api.message('c', api.Message(text=q2['options'][0], question_id=q2['id'],
+                            version=second['version']), session, settings)
+        assert final['state'] == 'awaiting_approval'
+        assert final['pending_question'] is None
+        assert len(final['decisions']) == 2
+        assert len(final['plans']) == 1
+        assert operations.count('campaign_plan') == 1
+        assert retrievals == ['search']
+
+
+def test_repair_defers_candidate_assets_when_an_essential_question_remains():
+    requirements = launch_requirements()
+    candidate = outline(requirements)
+    candidate['questions'] = ['Which approved customer proof should replace the uncleared story?']
+    original_assets = list(requirements['assets'])
+
+    class Client:
+        def run(self, request, **kwargs):
+            return SimpleNamespace(parsed=SimpleNamespace(model_dump=lambda: candidate))
+
+    result = api.repair_deliverables(Client(), Settings(_env_file=None),
+        SimpleNamespace(id='campaign', brand_id='brand'), candidate, requirements, {})
+    assert result['questions'] == candidate['questions']
+    assert result['assets'] == []
+    assert requirements['assets'] == original_assets
+    require_deliverables(result, requirements)

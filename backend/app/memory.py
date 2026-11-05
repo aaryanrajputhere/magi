@@ -13,6 +13,13 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from app.db import Base, get_session
 
 
+MEMORY_GUIDANCE = (
+    'Apply relevant brand_preferences as saved local style and workflow preferences. '
+    'Explicit current campaign instructions and governing brand restrictions take precedence. '
+    'Preferences are not evidence for factual claims or permission to publish. '
+)
+
+
 class Memory(Base):
     __tablename__ = 'brand_memories'
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -176,7 +183,10 @@ def learn(session, campaign, body, settings):
             if change.scope != 'lasting':
                 continue
             if not change.evidence.strip() or change.evidence not in body.text:
-                raise ValueError('Memory evidence does not match the user message')
+                if only:
+                    raise ValueError('Memory evidence does not match the user message')
+                # Optional suggestions must not turn a normal brief into a memory error.
+                continue
             if is_campaign_only(change.evidence) or (change.text and is_campaign_only(change.text)):
                 continue
             # A standalone explicit memory request supplies lasting intent to its quoted preferences.

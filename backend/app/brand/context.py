@@ -174,7 +174,7 @@ def usage_for_run(engine: Engine, identifier: str):
 
 def plan_retrieval(
     engine: Engine, brand_id: str, brief: str, *, settings: Settings | None = None, client=None,
-    campaign_id: str | None = None, campaign_source: dict | None = None, requirements_ready=None
+    campaign_id: str | None = None, campaign_source: dict | None = None, requirements_ready=None, saved_requirements=None
 ):
     if not brief.strip() or len(brief) > 6000:
         raise RetrievalError("Enter a nonblank campaign brief of at most 6,000 characters")
@@ -189,8 +189,10 @@ def plan_retrieval(
     owned = client is None
     client = client or TrackedOpenAI(engine, settings)
     try:
-        requirements = None
-        if campaign_source is not None:
+        requirements = saved_requirements
+        if requirements is not None:
+            brief = json.dumps(requirements)
+        if campaign_source is not None and requirements is None:
             from app.brand.campaign_requirements import extract_requirements
             requirements = extract_requirements(client, settings, brand_id, campaign_id, campaign_source)
             saved = save_artifact(engine, brand_id, 'campaign_requirements', brand_fingerprint,
@@ -306,6 +308,7 @@ def execute_retrieval(
                         "results": [],
                     }
                 )
+    expand_document_sections(engine, brand_id, groups)
     check_hybrid(engine, brand_id, snapshot)
     return save_artifact(
         engine,
@@ -474,3 +477,27 @@ def get_brand_context(
         assessed = assess_evidence(engine, brand_id, retrieved["id"], settings=settings)
         return assemble_context(engine, brand_id, retrieved["id"], assessment_id=assessed["id"])
     return assemble_context(engine, brand_id, retrieved["id"])
+
+
+def expand_document_sections(engine, brand_id, groups):
+    """Include current sections of matched documents, with original provenance."""
+    with Session(engine) as session:
+        rows, _ = corpus_rows(session, brand_id)
+    by_document = {}
+    for chunk, document in rows:
+        by_document.setdefault(document.id, []).append((chunk, document))
+    seen = {hit['chunk_id'] for group in groups for hit in group['results']}
+    for group in groups:
+        documents = list(dict.fromkeys(hit['document_id'] for hit in group['results']))
+        for identifier in documents:
+            for chunk, document in by_document.get(identifier, []):
+                if chunk.id in seen:
+                    continue
+                group['results'].append({
+                    'rank': len(group['results']) + 1, 'score': 0,
+                    'chunk_id': chunk.id, 'document_id': document.id,
+                    'title': document.title, 'relative_path': document.relative_path,
+                    'heading_path': chunk.heading_path, 'start_line': chunk.start_line,
+                    'end_line': chunk.end_line, 'content': chunk.content,
+                    'retrieval_reason': 'remaining_section_of_matched_document'})
+                seen.add(chunk.id)

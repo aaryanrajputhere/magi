@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     magi_brief_directory: str = "briefs"
     magi_retrieval_evaluation_dir: Path = PROJECT_ROOT / "evaluation"
     magi_openai_timeout_seconds: float = Field(default=60, gt=0, allow_inf_nan=False)
+    magi_validation_timeout_seconds: float = Field(default=180, gt=0, allow_inf_nan=False)
     magi_retrieval_planner_model: str = "gpt-4.1-mini"
+    magi_conflict_review_model: str = "gpt-6-luna"
     openai_api_key: SecretStr | None = None
     firecrawl_api_key: SecretStr | None = None
 

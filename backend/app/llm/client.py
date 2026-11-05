@@ -31,6 +31,7 @@ class ModelRequest(BaseModel):
     tool_choice: Literal["auto", "required", "none"] | None = None
     max_output_tokens: int = Field(gt=0)
     context: RunContext = Field(default_factory=RunContext)
+    timeout_seconds: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     prompt_cache_key: str | None = None
 
     @field_validator("operation", "model")
@@ -114,6 +115,27 @@ def redact(value, secrets: list[str]):
     return value
 
 
+def connection_diagnostics(exc):
+    """Bounded exception chain; never inspect request headers or payloads."""
+    chain, seen = [], set()
+    current = exc
+    while current is not None and id(current) not in seen and len(chain) < 10:
+        seen.add(id(current))
+        entry = {'type': type(current).__name__, 'message': str(current)[:2000]}
+        for name in ('errno', 'winerror', 'verify_code', 'verify_message'):
+            value = getattr(current, name, None)
+            if isinstance(value, (str, int)):
+                entry[name] = value
+        chain.append(entry)
+        current = current.__cause__ or (None if current.__suppress_context__ else current.__context__)
+    request = getattr(exc, 'request', None)
+    url = getattr(request, 'url', None)
+    endpoint = ({'scheme': url.scheme, 'host': url.host, 'port': url.port}
+                if url is not None else None)
+    return {'exception_chain': chain, 'root_cause': chain[-1] if chain else None,
+            'endpoint': endpoint}
+
+
 class TrackedOpenAI:
     def __init__(
         self,
@@ -155,7 +177,7 @@ class TrackedOpenAI:
                         requested_model=redact(request.model, self.secrets),
                         context=redact(request.context.model_dump(mode="json"), self.secrets),
                         request_body=redact(body, self.secrets),
-                        timeout_seconds=Decimal(str(self.settings.magi_openai_timeout_seconds)),
+                        timeout_seconds=Decimal(str(getattr(request, "timeout_seconds", None) or self.settings.magi_openai_timeout_seconds)),
                     )
                 )
         except SQLAlchemyError as exc:
@@ -221,7 +243,7 @@ class TrackedOpenAI:
                     )
                 # Explicit per-call options prevent injected clients from hiding retries.
                 raw_response = self._sdk.with_options(
-                    max_retries=0, timeout=self.settings.magi_openai_timeout_seconds
+                    max_retries=0, timeout=request.timeout_seconds or self.settings.magi_openai_timeout_seconds
                 ).responses.with_raw_response.create(**body)
                 response_body = raw_response.http_response.json()
                 usage = response_body.get("usage")
@@ -294,6 +316,7 @@ class TrackedOpenAI:
                         "message": str(exc),
                         "status_code": getattr(exc, "status_code", None),
                         "body": getattr(exc, "body", None),
+                        **connection_diagnostics(exc),
                     },
                     request_id=getattr(exc, "request_id", None),
                     cost_status="unknown",

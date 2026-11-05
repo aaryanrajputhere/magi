@@ -1599,6 +1599,7 @@ main.campaign-view { display: flex; flex-direction: column; overflow: hidden; }
 .inspector-stats { display:flex; flex-wrap:wrap; gap:12px; margin:20px 0; }
 .inspector-stats > span { padding:12px 18px; background:#f0edf5; border-radius:10px; font-size:13px; }
 .inspector-stats strong { margin-right:6px; }
+.inspector-cost-note { display:block; margin-top:4px; color:#62586f; }
 .inspector-layout { display:grid; grid-template-columns:minmax(190px, 1fr) minmax(0, 3fr); gap:24px; }
 .inspector-timeline { max-height:720px; overflow:auto; }
 .campaign-workspace .inspector-run { display:flex; align-items:flex-start; gap:10px; width:100%; text-align:left; margin-bottom:12px; position:relative; }
@@ -1926,3 +1927,14 @@ main.campaign-view { display: flex; flex-direction: column; overflow: hidden; }
 .preview-slide-copy { min-width:0; }
 .preview-heading-arrows { display:flex; gap:8px; flex-shrink:0; }
 .campaign-workspace .preview-heading-arrows button { width:36px; height:36px; padding:0; border-radius:8px; background:#fff; color:#70428a; font-size:22px; }
+
+.agent-question {white-space:normal;padding:12px;border:1px solid #b9a5e5;border-radius:12px;background:rgba(130,95,200,.06)}
+.agent-question fieldset {border:0;padding:0;min-width:0}.agent-question legend {font-weight:600;margin-bottom:12px}.question-options {display:grid;gap:8px;margin-bottom:12px}.question-options label {display:flex;gap:8px;align-items:center}.agent-question textarea {display:block;width:100%;box-sizing:border-box;margin:8px 0}.agent-question button {margin-top:8px}
+
+.campaign-flow{display:flex;gap:18px;padding:24px;overflow:auto;flex-wrap:wrap;background:#f8f7fb}
+.campaign-flow-stage{flex:1 0 170px;min-width:0;padding:18px;background:#fff;border:1px solid #ded6e9;border-radius:12px;position:relative}
+.campaign-flow-stage:not(:nth-child(5))::after{content:'→';position:absolute;right:-16px;top:30px;color:#8864a7}
+.campaign-flow-number{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#eee5f7;color:#795397;font-size:12px}
+.campaign-flow-stage h3{font-size:15px;margin:12px 0 8px}.campaign-flow-stage p,.campaign-flow-note{font-size:12px;line-height:1.6;color:#746580}.campaign-flow-stage>small{font-size:11px;color:#746580}
+.campaign-flow-stage details{margin-top:16px;font-size:12px}.campaign-workspace .campaign-flow-stage button{display:flex;flex-direction:column;text-align:left;white-space:normal;width:100%;margin-top:8px;padding:10px;gap:5px}.campaign-flow-stage button small{font-size:10px;color:#746580}
+.campaign-flow-note{flex-basis:100%;margin:0}.activity-graph-expanded .campaign-flow{flex:1;align-content:start}

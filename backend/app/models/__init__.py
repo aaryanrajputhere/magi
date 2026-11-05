@@ -26,3 +26,5 @@ __all__ = [
 from app.models.agent import AgentTurn, CampaignLease
 
 from app.memory import Memory, MemoryEvent, MemoryReceipt
+
+from app.research import ResearchRun

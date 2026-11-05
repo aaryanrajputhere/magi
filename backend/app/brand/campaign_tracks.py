@@ -102,6 +102,7 @@ def asset_package(reviewed, requirement):
     topic, channel = tracks['topic'], tracks[requirement['format']]
     evidence = {p['chunk_id']: p for track in (topic, channel) for p in track['evidence']}
     return {'mode': reviewed.get('mode'), 'requirement': requirement,
+            'rule_pack': channel.get('rule_pack'),
             'campaign_topic': reviewed['requirements']['topic'],
             'campaign_context': reviewed['requirements'].get('topic_details', []),
             'campaign_constraints': reviewed['requirements']['constraints'],
@@ -114,6 +115,19 @@ def load_asset_package(engine, brand_id, plan, asset_id):
     package = plan.get('asset_packages', {}).get(asset_id)
     if package is None:
         return None
+    if not package.get('rule_pack'):
+        from app.brand.rule_pack import build_rule_packs
+        from app.config import get_settings
+        from app.llm.client import TrackedOpenAI
+        settings = get_settings()
+        client = TrackedOpenAI(engine, settings)
+        try:
+            pack = build_rule_packs(engine, brand_id, [package['requirement']['format']], client, settings, None)[package['requirement']['format']]
+            package = {**package, 'mode': 'verified', 'rule_pack': pack, 'evidence': pack['evidence']}
+        finally:
+            client.close()
+    from app.brand.authority import current_authority
+    current_authority(engine, brand_id, package['rule_pack']['authority_version_id'])
     # Validate the persisted source/authority fingerprints again at execution time.
     for track in ('topic', 'channel'):
         load_artifact(engine, brand_id, package[track]['review_id'], 'campaign_review')
