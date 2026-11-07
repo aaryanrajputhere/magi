@@ -1,8 +1,9 @@
 """Regressions for rule corrections and customer permission in campaign intake."""
-import json
+
 from types import SimpleNamespace
 
 import pytest
+from review_helpers import review_payload
 
 from app.brand import conflict_coverage as coverage
 from app.brand.conflicts import prepare_conflict_intake
@@ -82,7 +83,7 @@ def test_wrong_source_reference_is_repaired_or_blocks_readiness(monkeypatch, rep
                 campaign.data['messages'], evidence)
     assert [r.operation for r in requests] == ['campaign_conflict_find',
         'campaign_conflict_check', 'campaign_conflict_grounding_repair']
-    payload = json.loads(requests[-1].input)
+    payload = review_payload(requests[-1])
     assert [p['content'] for p in payload['passages']] == [RULE, PERMISSION]
     assert payload['validation_errors']
 

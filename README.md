@@ -71,15 +71,23 @@ Ingestion retains original Markdown, relative paths, content hashes, and source 
 
 Current campaign planning pools retrieved passages, extracts source rules and campaign decisions, compares scope and exceptions, and independently checks the result against original evidence. Material decisions require comparison coverage; invalid references or incomplete batches cannot establish readiness. Supplemental evidence also goes through review. Plan verification is tied to the saved outline. The process inspector exposes rules, decisions, comparisons, and coverage artifacts.
 
-Topic and channel contexts compact the retrieved evidence for writing. Source references and original passages remain available in saved artifacts. Conflict handling covers retrieved evidence and uses model judgments; it cannot guarantee that every relevant rule was retrieved or interpreted correctly. Source authority-map and atomic-statement tools in **Sources** are separate inspection paths, not mandatory campaign setup.
+Stage-specific source selection keeps planning evidence separate from execution-only guidance. It retains applicable legal and strategic rules, exceptions, dependencies, and prior conflict sources. Prompt projections remove repeated brief text, hashes, ranking metadata, and redundant requirement fields while preserving original source text and stored provenance. Changed-field confirmation rechecks affected rules and their dependencies.
+
+Shared guidelines are separated from channel and asset-specific instructions. A saved asset-context route selects original passages separately for writing, validation, and image selection; sibling assets no longer receive every other asset’s evidence. Topic and channel contexts compact the retrieved evidence for writing. Source references and original passages remain available in saved artifacts. Conflict handling covers retrieved evidence and uses model judgments; it cannot guarantee that every relevant rule was retrieved or interpreted correctly. Source authority-map and atomic-statement tools in **Sources** are separate inspection paths, not mandatory campaign setup.
 
 ### Images, research, and editing
 
-Image selection uses the library catalog and metadata, brief restrictions, and relevant visual guidance. It may select no image when none fits. An image-selection failure can leave a text draft available for manual image attachment.
+Image selection shortlists library metadata using keyword and semantic retrieval, then makes bounded model selections using brief restrictions and relevant visual guidance. Catalog and exact-query embeddings are cached locally; a keyword fallback is available when semantic retrieval fails. It may select no image when none fits. An image-selection failure can leave a text draft available for manual image attachment.
 
-When configured, Firecrawl research uses generic industry queries rather than looking up the fictional company. External material is campaign-scoped and cannot establish brand facts. Research is bounded to two queries and three scraped pages per attempt, with local estimated-credit limits. Missing credentials or provider failures leave research skipped, partial, or failed rather than inventing evidence. Firecrawl credits are separate from OpenAI token costs.
+When configured, Firecrawl research requires a concrete unmet external factual need and intended use. Optional background, brand certification, and customer clearance do not qualify; skipped research records zero credits without a provider call. Eligible research uses generic industry queries rather than looking up the fictional company. External material is campaign-scoped and cannot establish brand facts. Research is bounded to two queries and three scraped pages per attempt, with local estimated-credit limits. Missing credentials or provider failures leave research skipped, partial, or failed rather than inventing evidence. Firecrawl credits are separate from OpenAI token costs.
 
-Generation runs up to three asset pipelines concurrently. Chat revisions target an individual asset; prior draft bodies are retained in revision history. Model-based validation supplements format, reference, and freshness checks; it is not a guarantee that copy is ready to publish.
+Generation runs up to three asset pipelines concurrently. Provider calls share a three-request limit per campaign within the backend process. Completed drafts are checkpointed for retry, and plan extensions retain existing assets while generating approved additions. Chat revisions target an individual asset using focused context; prior draft bodies are retained in revision history.
+
+Validation grounds findings in server-reconstructed original source paragraphs and combines semantic review with deterministic format and numeric checks. Repairs apply bounded, non-overlapping text patches against the current draft hash, with at most two repair rounds. Stale or ambiguous patches preserve the original copy.
+
+Text validation and publication readiness are displayed separately. Typed dependencies track destination URLs, authors, dates, imagery, permissions, and missing evidence. **Publication details** accepts confirmed URLs, bylines, and dates; rechecking evaluates them without changing the approved plan. Whole-campaign and individual-draft rechecks preserve attached images and checkpoint results. Passing these checks does not grant permission to publish. See [saved draft quality and publication checks](docs/saved-draft-quality-flow.md).
+
+Clarification cards explain why an answer is needed and accept a suggested choice with optional details or a custom response. Campaign lists load summaries, the workspace polls during active work, and stale polling responses cannot overwrite newer actions. The process inspector loads full requests and retrieval evidence on demand, shows aggregate and per-request cache hit rates, cache writes, prefix diagnostics, and unknown-cost counts, and offers simple flow and detailed request-map views.
 
 ### Memory
 
@@ -93,11 +101,13 @@ Only OpenAI models are used for model inference. Current configured defaults are
 
 | Task | Model | Intended tradeoff |
 | --- | --- | --- |
-| Planning, chat orchestration, writing, memory, image selection | `gpt-4.1-mini` via `MAGI_RETRIEVAL_PLANNER_MODEL` | Shared structured-output model keeps configuration and per-step costs simple. |
+| Brief analysis and retrieval planning | `gpt-6-luna` via `MAGI_RETRIEVAL_PLANNER_MODEL` | Structured planning and source selection. |
+| Chat orchestration | `gpt-6-luna` via `MAGI_AGENT_MODEL` | Tool-based campaign conversation. |
+| Asset writing | `gpt-6-luna` via `MAGI_WRITER_MODEL` | Writing can be configured independently of planning and review. |
 | Conflict coverage, rule extraction, draft validation | `gpt-6-luna` via `MAGI_CONFLICT_REVIEW_MODEL` | Separate review setting allows evaluation independently of the writing model. |
 | Document and query embeddings | `text-embedding-3-small`, 1,536 dimensions | Compact vectors support local semantic retrieval in SQLite. |
 
-These are repository settings, not measured quality comparisons. Compose forwards both model settings from `.env`; recreate the backend after changing them. Verify model access with the supplied key before a live run.
+These are repository settings, not measured quality comparisons. Compose forwards all four model settings from `.env`; recreate the backend after changing them. Verify model access with the supplied key before a live run.
 
 Tracked requests retain prompts, responses, provider usage, timing, source/campaign/asset references, and cost estimates. Inspect them in the app or without making model calls:
 
@@ -106,9 +116,21 @@ docker compose exec backend python -m app.llm.cli list --limit 20
 docker compose exec backend python -m app.llm.cli show '<run-id>'
 ```
 
-Cost is estimated from recorded usage and supported pricing snapshots. An unrecognized model or incomplete usage yields **unknown**, not zero. In particular, the current text pricing registry covers `gpt-4.1-mini`, not the default conflict-review model; a campaign total must disclose unknown-cost steps.
+Cost is estimated from recorded usage and supported pricing snapshots. An unrecognized model or incomplete usage yields **unknown**, not zero. The text pricing registry includes `gpt-4.1-mini` and `gpt-6-luna`. Estimates distinguish uncached input, cached reads, reported cache writes, and output, with configured long-context multipliers. Missing optional Luna cache-write counts are treated as zero by the estimator; they are not measured zero writes. The inspector can recover estimates for older Luna calls whose sole missing-cost reason was unsupported model pricing. Historical report subtotals retain their original estimates and unknown-cost disclosures.
 
-Prompt caching places reusable messages before changing task data and uses brand/operation cache keys. A key does not guarantee a hit. Calculate aggregate cache hit rate as `sum(cached_input_tokens) / sum(input_tokens)` over runs with reported usage. Include preparation, retries, failed billable attempts, research, and edits separately when reporting spend. See [prompt caching and recovery notes](docs/prompt-caching.md).
+Prompt caching places stable instructions and source prefixes before changing task data and uses brand/operation cache keys. Supported models use explicit source boundaries when enabled. An optional shared-evidence path canonicalizes repeated source blocks across operations. A key does not guarantee a hit. Calculate aggregate cache hit rate as `sum(cached_input_tokens) / sum(input_tokens)` over runs with reported usage. Include preparation, retries, failed billable attempts, research, and edits separately when reporting spend. See [prompt caching and recovery notes](docs/prompt-caching.md).
+
+The following switches are forwarded by Compose; recreate the backend after changing them:
+
+| Setting | Default | Behavior |
+| --- | --- | --- |
+| `MAGI_EXPLICIT_PROMPT_CACHE` | `true` | Explicit cache boundaries for supported requests; unmarked histories retain implicit behavior. |
+| `MAGI_SHARED_EVIDENCE_CACHE` | `false` | Optional shared evidence blocks and appended schemas. |
+| `MAGI_PARALLEL_VERIFICATION` | `false` | Independent global and channel review checks. |
+| `MAGI_PARALLEL_PLANNING` | `false` | Strategy/calendar followed by independent channel outlines. |
+| `MAGI_PARALLEL_CONFLICT_RESOLUTION` | `false` | Independent conflict resolutions after decision matching. |
+
+Parallel paths remain opt-in pending broader quality and latency evaluation. The concurrency limit is per process, not a distributed rate limiter. See [efficiency rollout](docs/campaign-efficiency-rollout.md), [planning context efficiency](docs/planning-context-efficiency.md), and [context collections](docs/context-collections.md).
 
 SDK retries are disabled, but selected agent preparation operations have one application-level recovery attempt. Saved edits, approval, and generation are not automatically replayed by that recovery path. Successful review checkpoints can be reused after interruptions; durable recovery of every interrupted campaign state is not complete.
 
@@ -147,19 +169,25 @@ These checks cover backend behavior and contracts, lint, frontend compilation, a
 PYTHONPATH=backend .venv/bin/python backend/scripts/evaluate_conflict_coverage.py
 ```
 
-The script's `--live` option makes paid model calls. No live assessment run or spend benchmark is claimed by this README.
+The script's `--live` option makes paid model calls. Other offline efficiency and cache audits are available in `backend/scripts/`; consult their accompanying documentation before enabling paid evaluation. Focused regression results are recorded in the linked implementation notes. The full suite is not currently green; focused passes must not be presented as full-suite validation.
 
 ## Submission status and limitations
 
 The implementation includes ingestion and retrieval, campaign planning and approval, draft generation and previews, targeted edits, image selection, optional research, editable cross-campaign memory, and prompt/usage inspection. The walkthrough above identifies how to demonstrate each requirement.
 
-The assessment also requires the following submission evidence, which is not present in this repository at the time of this documentation update:
+[DECISIONS.md](DECISIONS.md) records design rationale and tradeoffs. [costs.md](costs.md) records historical measurements for all three briefs and updated measurements for all three; a typical saved-draft edit measurement remains pending. A screen recording is still needed to demonstrate the complete workflow and memory carryover.
 
-- **DECISIONS.md (1–3 pages):** brand-layer and memory design rationale, conflict handling, omissions and reasons, a concrete case where an AI tool led the work wrong, and a two-week improvement plan.
-- **COSTS.md:** measured tokens, cost, and cache hit rate for each of the three supplied briefs, plus a typical edit. Report unknown-cost steps and Firecrawl usage explicitly.
-- **Screen recording:** one brief through clarification, plan adjustment, generation and editing; a new campaign showing retained memory; brand retrieval and an exact asset prompt; tokens and cost for the demonstrated run.
+The three updated runs report:
 
-These require actual execution evidence and author experience; this README does not substitute invented measurements or examples. One-command startup includes corpus preparation through `docker compose up --build`, with the source package present and precomputed brand data. Campaign inference still requires a configured API key. Live quality across all supplied briefs and an unseen brief remains to be demonstrated. There is no authentication or deployment workflow; this is a localhost application. Existing tables are created additively with SQLAlchemy rather than managed by a versioned migration system.
+| Brief | Before total tokens | After total tokens | Cache hit rate: before → after | After estimated USD |
+| --- | ---: | ---: | --- | ---: |
+| Leashgate GA launch | 11,386,299 reported | 1,194,114 | 12.13% → 39.24% | $0.158508395 known subtotal |
+| Q1 awareness push | 2,998,637 | 644,943 | 0.30% → 37.22% | $0.080754825 |
+| Regulated teams push | 4,179,238 | 693,224 | 4.98% → 35.78% | $0.084598070 |
+
+Reported tokens fell approximately 89.5%, 78.5%, and 83.4%, respectively. Leashgate's historical total omits one call with unknown usage, and its updated cost excludes one unpriced call. Historical cost subtotals also omit unpriced calls; they cannot establish a precise full-cost reduction. Costs already include cache pricing. See the cost report for input/output/cached counts and exclusions. Execution time remains an improvement area; no 10x speedup is established by these measurements.
+
+One-command startup includes corpus preparation through `docker compose up --build`, with the source package present and precomputed brand data. Campaign inference still requires a configured API key. Live quality across all supplied briefs and an unseen brief remains to be demonstrated. There is no authentication or deployment workflow; this is a localhost application. Existing tables are created additively with SQLAlchemy rather than managed by a versioned migration system.
 
 ## Repository layout
 

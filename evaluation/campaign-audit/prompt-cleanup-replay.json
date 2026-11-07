@@ -1,0 +1,20 @@
+[
+  {
+    "campaign": "af3bdcc1-cb98-489a-8ed8-a05c250d968f-runs",
+    "before_chars": 624037,
+    "after_chars": 464776,
+    "removed_chars": 159261
+  },
+  {
+    "campaign": "688e97e7-67af-4782-90d1-5b5831d837f4-runs",
+    "before_chars": 339495,
+    "after_chars": 305043,
+    "removed_chars": 34452
+  },
+  {
+    "campaign": "67bac97f-81fb-4021-8a94-e3d62ac29689-runs",
+    "before_chars": 237827,
+    "after_chars": 237317,
+    "removed_chars": 510
+  }
+]

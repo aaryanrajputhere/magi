@@ -6,24 +6,30 @@ import { createPortal } from 'react-dom';
 
 type Trace = {name:string;status:string;details?:Record<string,unknown>;error?:string};
 type Citation = {chunk_id:string;number:number;title:string;relative_path:string;heading_path:string[];start_line:number;end_line:number;content:string};
-type AgentQuestion = {id:string;text:string;kind:"choices"|"text";options:string[];answer:string|null};
+type AgentQuestion = {id:string;text:string;reason?:string;kind:"choices"|"text";options:string[];answer:string|null};
 type ChatMessage = {question?:AgentQuestion;revision?:{asset_id:string;title:string;format:string;body:string;previous_body:string};plan_index?:number;role:string;text:string;paragraphs?:{text:string;source_ids:string[]}[];citations?:Record<string,Citation>;conflicts?:unknown[]};
-type Generation = {last_revised_asset_id?:string;plan_index:number;active_asset:string|null;error:string|null;drafts:Draft[]};
+type Generation = {phase?:string;last_revised_asset_id?:string;plan_index:number;active_asset:string|null;error:string|null;drafts:Draft[]};
 type Requirements = {topic:string;topic_details?:{heading:string;content:string}[];constraints:string[];assets:{id:string;format:string;purpose:string;audience:string;timing:string|null;sender_or_byline:string|null;constraints:string[]}[]};
-type Campaign = {conflict_coverage?:{status:string};pending_conflict_question_ids?:string[];pending_question?:AgentQuestion|null;questions?:AgentQuestion[];memory_notice?:string;requirements?:Requirements;generation?:Generation;trace?:Trace[];id:string; brand_id:string; state:string; version:number; messages:ChatMessage[]; plans:Plan[]};
-type Plan = {extension?:{base_plan_index:number;added_asset_ids:string[]};goal:string; questions:string[]; assumptions:string[]; constraints:string[]; assets:{id:string;format:string;audience:string;purpose:string;angle?:string;hook?:string;cta:string;timing:string|null}[]};
+type Campaign = {title?:string;conflict_coverage?:{status:string};pending_conflict_question_ids?:string[];pending_question?:AgentQuestion|null;questions?:AgentQuestion[];memory_notice?:string;requirements?:Requirements;generation?:Generation;trace?:Trace[];id:string; brand_id:string; state:string; version:number; messages:ChatMessage[]; plans:Plan[]};
+type Plan = {recovery?:{reason:string;issues:{asset_id:string|null;field:string;explanation:string}[]};extension?:{base_plan_index:number;added_asset_ids:string[]};goal:string; questions:(string|Omit<AgentQuestion,'id'|'answer'>)[]; assumptions:string[]; constraints:string[]; assets:{id:string;format:string;audience:string;purpose:string;angle?:string;hook?:string;cta:string;timing:string|null;cta_destination?:string|null;cta_destination_kind?:'asset'|'url'|'on_page_form'|null;publish_after_asset_ids?:string[]}[]};
 type SearchPlan = {analysis?:{topic?:string;products?:string[];channels?:string[]};queries?:{id:string;purpose:string;query:string;reason:string}[]};
-function campaignTitle(c?:Campaign) { return (c?.requirements?.topic || c?.messages.find(m=>m.role==='user')?.text.split('\n')[0] || 'New campaign').replace(/^\s*#+\s*/, '').replace(/\*\*/g,'').replace(/^campaign brief:\s*/i,'').trim(); }
+function campaignTitle(c?:Campaign) { return (c?.title || c?.requirements?.topic || c?.messages.find(m=>m.role==='user')?.text.split('\n')[0] || 'New campaign').replace(/^\s*#+\s*/, '').replace(/\*\*/g,'').replace(/^campaign brief:\s*/i,'').trim(); }
 function QuestionCard({question,active,busy,onAnswer}:{question:AgentQuestion;active:boolean;busy:boolean;onAnswer:(answer:string)=>void}) {
-  const [answer,setAnswer] = useState('');
-  return <form className="agent-question" onSubmit={e=>{e.preventDefault();if(answer.trim()&&active&&!busy)onAnswer(answer.trim());}}>
+  const [selected,setSelected] = useState('');
+  const [details,setDetails] = useState('');
+  const answer=question.kind==='choices'&&selected
+    ? `${selected}${details.trim()?`\nAdditional details: ${details.trim()}`:''}`
+    : details.trim();
+  return <form className="agent-question" onSubmit={e=>{e.preventDefault();if(answer&&active&&!busy)onAnswer(answer);}}>
     <fieldset disabled={!active||busy}><legend>{question.text}</legend>
-      {question.kind==='choices'&&<div className="question-options">{question.options.map(option=><label key={option}><input type="radio" name={question.id} checked={answer===option} onChange={()=>setAnswer(option)}/>{option}</label>)}</div>}
-      {question.kind==='text'&&<label>Your answer<textarea value={answer} onChange={e=>setAnswer(e.target.value)} rows={2}/></label>}
-      {active?<button disabled={busy||!answer.trim()}>Submit answer</button>:<small>Answered or superseded</small>}
+      {question.reason&&<p>{question.reason}</p>}
+      {question.kind==='choices'&&<div className="question-options">{question.options.map(option=><label key={option}><input type="radio" name={question.id} checked={selected===option} onChange={()=>setSelected(option)}/>{option}</label>)}<label><input type="radio" name={question.id} checked={selected===''} onChange={()=>setSelected('')}/>Write my own response</label></div>}
+      <label>{question.kind==='choices'&&selected?'Additional details (optional)':'Your answer'}<textarea value={details} onChange={e=>setDetails(e.target.value)} rows={3}/></label>
+      {active?<button disabled={busy||!answer}>Submit answer</button>:<small>Answered or superseded</small>}
     </fieldset>
   </form>;
 }
+
 function BriefMessage({text}:{text:string}) {
   const [expanded,setExpanded] = useState(false);
   return text.length>500 ? <div className="submitted-brief">
@@ -76,6 +82,7 @@ export default function CampaignWorkspace() {
   const setText=(value:string)=>setDrafts(old=>({...old,[selected]:value}));
   const [source,setSource]=useState<{citation:Citation;conflicts:unknown[];references:Record<string,Citation>}|null>(null);
   const [busy,setBusy]=useState(false);
+  const responseEpoch = useRef(0);
   const [error,setError]=useState('');
   const campaign=campaigns.find(c=>c.id===selected);
   const topic=campaign?.trace?.map(s=>searchPlan(s).analysis?.topic).find(Boolean)||'';
@@ -97,7 +104,7 @@ export default function CampaignWorkspace() {
       setError(hash.startsWith('#campaigns/')&&!match ? 'Campaign not found.' : '');
     };
     window.addEventListener('hashchange',update);
-    Promise.all([api('campaigns'),api('brands')]).then(([c,b])=>{
+    Promise.all([api('campaigns?summary=true'),api('brands')]).then(([c,b])=>{
       loaded=true;setCampaigns(c);setBrands(b);setBrand(b[0]?.id||'');
       if((!window.location.hash||window.location.hash==='#campaigns')&&c[0]) {
         window.history.replaceState(null,'',`#campaigns/${encodeURIComponent(c[0].id)}`);
@@ -108,11 +115,48 @@ export default function CampaignWorkspace() {
   },[]);
   useEffect(()=>{
     if (!selected) return;
-    const timer = window.setInterval(()=>{api(`campaigns/${selected}`).then(c=>setCampaigns(old=>old.map(x=>x.id===c.id?c:x))).catch(()=>{});},2000);
-    return ()=>window.clearInterval(timer);
-  },[selected]);
+    let active=true;
+    let timer:ReturnType<typeof setTimeout>;
+    const refresh=async()=>{
+      try {
+        const epoch = responseEpoch.current;
+        const c=await api(`campaigns/${selected}`);
+        if(active && epoch === responseEpoch.current){
+          setCampaigns(old=>old.map(x=>x.id===c.id?c:x));
+          if(busy || ['planning_busy','generating'].includes(c.state))timer=setTimeout(()=>void refresh(),2000);
+        }
+      }catch(e){if(active){setError(String(e));timer=setTimeout(()=>void refresh(),2000);}}
+
+    };
+    void refresh();
+    return ()=>{active=false;clearTimeout(timer);};
+  },[selected,campaign?.state,busy]);
   useEffect(()=>{setSource(null);setMobileView('chat');},[selected]);
-  async function act(path:string,body:unknown) {setBusy(true);setError('');try {const c=await api(path,body);setCampaigns(old=>[c,...old.filter(x=>x.id!==c.id)]);selectCampaign(c.id);setText('');}catch(e){setError(String(e));}finally{setBusy(false);}}
+  async function act(path:string,body:unknown) {
+    setBusy(true);setError('');
+    responseEpoch.current += 1;
+    try {
+      const c=await api(path,body);
+      responseEpoch.current += 1;
+      setCampaigns(old=>[c,...old.filter(x=>x.id!==c.id)]);
+      selectCampaign(c.id);setText('');
+    } catch(e) {
+      responseEpoch.current += 1;
+      setError(String(e));
+      // Failed mutations can still persist progress and a terminal error state.
+      const id = path.match(/^campaigns\/([^/]+)/)?.[1];
+      if(id) {
+        try {
+          const c=await api(`campaigns/${id}`);
+          responseEpoch.current += 1;
+          setCampaigns(old=>old.map(x=>x.id===c.id?c:x));
+        } catch {
+          // Preserve the action error; polling retries the state read separately.
+        }
+      }
+    } finally {setBusy(false);}
+  }
+
   const lastUserIndex = campaign?.messages.map(m => m.role).lastIndexOf('user') ?? -1;
   const firstUserIndex = campaign?.messages.findIndex(m => m.role === 'user') ?? -1;
   const initialTurn = lastUserIndex === firstUserIndex;
@@ -143,6 +187,8 @@ export default function CampaignWorkspace() {
     {source&&<SourceDrawer source={source} onClose={()=>setSource(null)}/>}
     <div className="campaign-toolbar"><span title={campaignTitle(campaign)}>{campaignTitle(campaign)}</span>{campaign&&<>
       {campaign.requirements&&(campaign.plans.length>0||campaign.conflict_coverage?.status==='incomplete')&&!campaign.pending_conflict_question_ids?.length&&!campaign.generation?.drafts.length&&!['planning_busy','generating'].includes(campaign.state)&&<button disabled={busy} onClick={()=>act(`campaigns/${campaign.id}/review`,{version:campaign.version})}>{campaign.plans.length?'Review evidence':'Retry evidence review'}</button>}
+      {!!campaign.generation?.drafts.length && <button disabled={busy || campaign.state==='generating'}
+        onClick={()=>void act(`campaigns/${campaign.id}/recheck-drafts`,{version:campaign.version})}>Recheck & repair saved drafts</button>}
       <a className="inspect-link" href={`/inspect/${encodeURIComponent(campaign.id)}`} target="_blank" rel="noopener noreferrer">Inspect ↗</a>
     </>}</div>
     {error&&<p role="alert">{error}</p>}
@@ -156,10 +202,10 @@ export default function CampaignWorkspace() {
         const generated = campaign.state === 'needs_review' && generation && !generation.error
           && generation.plan_index === index && !generation.active_asset
           && proposed.assets.every(asset => generation.drafts.some(draft => draft.asset_id === asset.id));
-        return <ChatPlan plan={proposed} state={current?(generated?'ready':campaign.state):'superseded'} busy={busy} onAnswer={answer=>act(`campaigns/${campaign.id}/messages`,{text:answer,version:campaign.version})} onApprove={()=>act(`campaigns/${campaign.id}/execute`,{version:campaign.version})}/>;
+        return <ChatPlan onRepair={()=>act(`campaigns/${campaign.id}/repair-plan`,{version:campaign.version})} hasPendingQuestion={!!campaign.pending_question && campaign.messages.some(message=>message.question?.id===campaign.pending_question?.id && !message.paragraphs && !message.revision)} plan={proposed} state={current?(generated?'ready':campaign.state):'superseded'} busy={busy} onAnswer={answer=>act(`campaigns/${campaign.id}/messages`,{text:answer,version:campaign.version})} onApprove={()=>act(`campaigns/${campaign.id}/execute`,{version:campaign.version})}/>;
       })()}</div>{i === firstUserIndex && !isRevision && campaign?.requirements&&<details className="chat-plan brief-summary" aria-label="Extracted brief"><summary className="brief-summary-heading"><span className="brief-summary-title">{campaign.requirements.topic}</span><span className="brief-summary-count">{campaign.requirements.assets.length} assets</span></summary><div className="brief-summary-content"><h3>Topic</h3><p>{campaign.requirements.topic}</p><details><summary>Full campaign context</summary>{campaign.requirements.topic_details?.map((s,i)=><section key={i}><h4>{s.heading}</h4><p style={{whiteSpace:'pre-wrap'}}>{s.content}</p></section>)}{campaign.requirements.constraints.map((c,i)=><p key={i}>{c}</p>)}</details><h3>Requested assets · {campaign.requirements.assets.length}</h3>{campaign.requirements.assets.map((a,i)=><details key={a.id}><summary>{i+1}. {a.format.replaceAll('_',' ')} · {a.purpose}</summary><p>Audience: {a.audience}</p><p>Sender / byline: {a.sender_or_byline||'Not specified'}</p><p>Publish: {a.timing||'Not specified'}</p>{a.constraints.map((c,j)=><p key={j}>{c}</p>)}</details>)}</div></details>}{i === firstUserIndex && retrievalQueries.length > 0 && <details className="chat-plan retrieval-questions" aria-label="Retrieval questions"><summary>Retrieval questions · {retrievalQueries.length}</summary>{[{title:'Topic questions',queries:retrievalQueries.filter(q=>!q.id.startsWith('channel__'))},{title:'Asset guidelines',queries:retrievalQueries.filter(q=>q.id.startsWith('channel__'))}].filter(group=>group.queries.length>0).map(group=><section key={group.title}><h4>{group.title}</h4><ol>{group.queries.map(q=><li key={q.id}><p>{q.query}</p><details><summary>Why this search?</summary><p>{q.reason}</p></details></li>)}</ol></section>)}</details>}{i === firstUserIndex && compactTracks && <details className="chat-plan"><summary>Compact contexts</summary>{Object.entries(compactTracks).map(([name,track])=><details key={name}><summary>{name === 'topic' ? 'Topic context' : name.replaceAll('_',' ') + ' context'} · {track.evidence.length} chunks{track.context_method ? ` · ${track.context_method}` : ''}</summary><p>{track.decision_reason}{track.input_tokens != null ? ` · ${track.input_tokens} tokens` : ''}</p>{track.report.supported.length ? track.report.supported.map((entry,index)=><div key={index}><p>{entry.text}</p><small>Sources: {entry.source_ids.join(', ')}</small></div>) : <p>No evidence retrieved</p>}</details>)}</details>}</Fragment>)}{initialTurn && progressMessageIndex === -1 && (isRevision ? <details><summary>Updating draft…</summary>{planningProgress}</details> : planningProgress)}{!campaign&&<p>What are we planning today?</p>}{!initialTurn && (busy || campaign?.state==='planning_busy') && <p role="status">{campaign?.generation?.drafts.length ? 'Updating campaign…' : 'Updating plan…'}</p>}{initialTurn&&busy&&!campaign?.trace?.length&&<p role="status">Reviewing brand evidence and planning…</p>}</div>
       <form className="composer" onSubmit={e=>{e.preventDefault();if(!text.trim()||busy||campaign?.state==='generating')return; if(campaign) void act(`campaigns/${campaign.id}/messages`,{text,version:campaign.version}); else {setBusy(true);api('campaigns',{brand_id:brand}).then(c=>{setCampaigns(old=>[c,...old]);selectCampaign(c.id);return act(`campaigns/${c.id}/messages`,{text,version:c.version});}).catch(e=>setError(String(e))).finally(()=>setBusy(false));}}}><label htmlFor="campaign-message">Brief or plan adjustment</label><textarea placeholder={campaign ? "Paste your brief or describe a change to the plan…" : "Describe your campaign…"} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.form?.requestSubmit();}}} rows={2} id="campaign-message" value={text} onChange={e=>{setText(e.target.value);e.target.style.height='auto';e.target.style.height=`${Math.min(e.target.scrollHeight,156)}px`;}} disabled={busy||!brand||campaign?.state==='generating'}/><button disabled={busy||!brand||!text.trim()||campaign?.state==='generating'}>Send</button><small className="composer-hint">Enter to send · Shift+Enter for a new line</small></form>
-    </div><AssetPreview campaignId={campaign?.id} version={campaign?.version} onUpdate={value => { const updated = value as Campaign; setCampaigns(old => old.map(c => c.id === updated.id ? updated : c)); }} revisedAssetId={campaign?.generation?.last_revised_asset_id} key={selected || 'new'} drafts={campaign?.generation?.drafts ?? []} brandName={brands.find(b => b.id === (campaign?.brand_id || brand))?.name || 'Brand'} generating={campaign?.state === 'generating'} error={campaign?.generation?.error}/></div>
+    </div><AssetPreview onRechecking={setBusy} campaignId={campaign?.id} version={campaign?.version} onUpdate={value => { responseEpoch.current += 1; const updated = value as Campaign; setCampaigns(old => old.map(c => c.id === updated.id ? updated : c)); }} revisedAssetId={campaign?.generation?.last_revised_asset_id} key={selected || 'new'} drafts={campaign?.generation?.drafts ?? []} brandName={brands.find(b => b.id === (campaign?.brand_id || brand))?.name || 'Brand'} generating={campaign?.state === 'generating'} rechecking={campaign?.generation?.phase === 'rechecking'} error={campaign?.generation?.error}/></div>
   </section>;
 }
 
@@ -182,15 +228,15 @@ function SourceDrawer({source,onClose}:{source:{citation:Citation;conflicts:unkn
   </dialog>;
 }
 
-function ChatPlan({plan,state,busy,onApprove,onAnswer}:{plan:Plan;state:string;busy:boolean;onApprove:()=>void;onAnswer:(answer:string)=>void}) {
+export function ChatPlan({plan,state,busy,onApprove,onAnswer,hasPendingQuestion=false}:{plan:Plan;state:string;busy:boolean;onApprove:()=>void;onAnswer:(answer:string)=>void;onRepair:()=>void;hasPendingQuestion?:boolean}) {
   return <section className="chat-plan" aria-label="Proposed campaign plan"><h3>Proposed campaign plan</h3><p>{plan.goal}</p>
-    {plan.questions.length>0&&<section aria-label="Essential questions"><h4>To finish the plan</h4>{plan.questions.map((q,i)=><ClarificationQuestion key={q} question={q} disabled={busy||state!=='clarifying'} onAnswer={onAnswer} index={i}/>)}</section>}
+    {!hasPendingQuestion&&plan.questions.length>0&&<section aria-label="Essential questions"><h4>To finish the plan</h4>{plan.questions.map((q,i)=><Fragment key={i}>{typeof q==='string'?<ClarificationQuestion question={q} disabled={busy||state!=='clarifying'} onAnswer={onAnswer} index={i}/>:<QuestionCard question={{...q,id:`plan-question-${i}`,answer:null}} active={state==='clarifying'} busy={busy} onAnswer={onAnswer}/>}</Fragment>)}</section>}
     {plan.assets.length>0&&<h4>Content angles</h4>}
     {plan.extension&&<p>Your {plan.assets.length-plan.extension.added_asset_ids.length} existing posts will be kept.</p>}
-    {plan.assets.map((a,i)=>plan.extension&&!plan.extension.added_asset_ids.includes(a.id)?null:<article key={a.id}><h4>{i+1}. {a.angle||a.format.replace('_',' ')}</h4>{a.angle&&<small>{a.format === 'x' ? 'X' : a.format.replaceAll('_',' ')} · {a.audience}{a.timing ? ` · ${a.timing}` : ''}</small>}{a.hook&&<p><strong>Suggested opening:</strong> {a.hook}</p>}<details><summary>Asset details</summary><p>{a.purpose}</p><p><strong>CTA:</strong> {a.cta}</p></details></article>)}
+    {plan.assets.map((a,i)=>plan.extension&&!plan.extension.added_asset_ids.includes(a.id)?null:<article key={a.id}><h4>{i+1}. {a.angle||a.format.replace('_',' ')}</h4>{a.angle&&<small>{a.format === 'x' ? 'X' : a.format.replaceAll('_',' ')} · {a.audience}{a.timing ? ` · ${a.timing}` : ''}</small>}{a.hook&&<p><strong>Suggested opening:</strong> {a.hook}</p>}<details><summary>Asset details</summary><p>{a.purpose}</p><p><strong>CTA:</strong> {a.cta}</p>{(a.cta_destination||a.cta_destination_kind==='on_page_form')&&<p><strong>Destination:</strong> {a.cta_destination_kind==='on_page_form'?'On-page demo form':a.cta_destination}</p>}{!!a.publish_after_asset_ids?.length&&<p><strong>Publish after:</strong> {a.publish_after_asset_ids.join(', ')}</p>}</details></article>)}
     {plan.assumptions.length>0&&<details><summary>Assumptions</summary>{plan.assumptions.map((a,i)=><p key={i}>{a}</p>)}</details>}
     {plan.constraints.length>0&&<details><summary>Brand and campaign constraints</summary>{plan.constraints.map((a,i)=><p key={i}>{a}</p>)}</details>}
-    {['awaiting_approval','approved','generation_error','needs_review'].includes(state)&&<div className="plan-approval"><p>Tell me what to change, or approve it to generate the drafts.</p><button className="approve-plan" disabled={busy} onClick={onApprove}>{['generation_error','needs_review'].includes(state)?'Retry unfinished drafts':`Approve & generate ${plan.extension ? `${plan.extension.added_asset_ids.length} new` : plan.assets.length} ${plan.assets.every(a=>['linkedin','x'].includes(a.format))?'posts':'drafts'}`}</button></div>}
+    {['needs_plan_review','awaiting_approval','approved','generation_error','needs_review'].includes(state)&&<div className="plan-approval"><p>Generate {plan.extension?.added_asset_ids.length ?? plan.assets.length} assets</p><button className="approve-plan" disabled={busy} onClick={onApprove}>Approve plan</button></div>}
     {state==='generating'&&<p role="status">Generating the approved drafts…</p>}{state==='ready'&&<p>✓ Drafts ready in preview.</p>}{state==='needs_review'&&<p role="status">Some drafts need review. Open their previews for the required corrections.</p>}
     {state==='superseded'&&<small>Previous plan version</small>}
   </section>;

@@ -1,5 +1,6 @@
 import pytest
 from pydantic import ValidationError
+
 from app.api.campaigns import requirement_bound_plan_schema
 from app.llm.client import strict_output_schema
 
@@ -50,9 +51,10 @@ def test_binding_does_not_hide_missing_duplicate_or_unknown_assets():
 
 
 @pytest.mark.parametrize('repair', [False, True])
-def test_plan_is_shown_after_optional_repair_without_reverification(repair):
+def test_plan_is_shown_only_after_optional_patch_reverification(repair):
     from types import SimpleNamespace
-    from app.brand.plan_verification import verify_plan, plan_signature, approval_error
+
+    from app.brand.plan_verification import approval_error, plan_signature, verify_plan
 
     requirement = {'id': 'post', 'format': 'linkedin',
                    'audience': 'Security leaders', 'timing': None}
@@ -68,20 +70,22 @@ def test_plan_is_shown_after_optional_repair_without_reverification(repair):
     def run(request, output_model):
         operations.append(request.operation)
         if request.operation == 'campaign_plan_verification':
-            assert len(operations) == 1, 'Must not verify again after repair'
-            value = {'reviewed_asset_ids': ['post'], 'defects': ['Fix hook'] if repair else []}
+            value = {'reviewed_asset_ids': ['post'], 'defects': [{
+                'asset_id': 'post', 'field': 'hook', 'explanation': 'Fix hook',
+                'kind': 'incomplete_text', 'rule_refs': []}]
+                if repair and len(operations) == 1 else []}
         else:
             assert request.operation == 'campaign_plan_coverage_repair'
-            value = {k: v for k, v in plan.items() if k != 'requirements'}
-            value['assets'] = [{**asset, 'hook': 'Corrected hook'}]
+            value = {'patches': [{'asset_id': 'post', 'field': 'hook',
+                                  'replacement': 'Corrected hook'}]}
         return SimpleNamespace(parsed=output_model.model_validate(value), run_id='test')
 
     result = verify_plan(SimpleNamespace(run=run), Settings(_env_file=None), campaign, [], plan)
     assert result['assets'][0]['hook'] == ('Corrected hook' if repair else 'Original hook')
     assert operations == ['campaign_plan_verification'] + (
-        ['campaign_plan_coverage_repair'] if repair else [])
+        ['campaign_plan_coverage_repair', 'campaign_plan_verification'] if repair else [])
     assert result['conflict_verification']['signature'] == plan_signature(result)
-    assert len(result['conflict_verification']['history']) == 1
+    assert len(result['conflict_verification']['history']) == (2 if repair else 1)
     campaign.data['plans'] = [result]
     assert approval_error(campaign) is None
     result['assets'][0]['hook'] = 'Edited'

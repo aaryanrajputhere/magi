@@ -13,8 +13,9 @@ from app.brand.retrieval import RetrievalError
 from app.brand.review_budget import deduplicate_findings, review_inputs
 from app.llm.client import ModelRequest, ModelRunError
 from app.llm.context import RunContext
+from app.llm.prompt_cache import cacheable_input, prompt_cache_key
 
-VERSION = 'direct_conflict_review_v9'
+VERSION = 'direct_conflict_review_v11'
 # The shared raw pool is reviewed together so cross-query contradictions stay visible.
 MAX_INPUT_TOKENS = 120000
 
@@ -22,6 +23,7 @@ MAX_INPUT_TOKENS = 120000
 def run_review(client, request, schema, engine):
     """Retry a token-truncated review once with room for the complete result."""
     from sqlalchemy.orm import Session
+
     from app.models import LLMRun
 
     try:
@@ -252,7 +254,17 @@ def review_decisions(campaign):
             for decision in current_decisions(campaign)]
 
 
-def review_campaign(client, settings, campaign, messages, evidence, *, query_groups=None, engine=None, candidate=None):
+def review_prompt(content, task):
+    """Keep original passages identical before trusted task and changing state."""
+    return [
+        {'role': 'user', 'content': json.dumps({'passages': content['passages']}, sort_keys=True)},
+        {'role': 'developer', 'content': json.dumps({'review_task': task})},
+        {'role': 'user', 'content': json.dumps(
+            {k: v for k, v in content.items() if k != 'passages'}, sort_keys=True)},
+    ]
+
+
+def review_campaign(client, settings, campaign, messages, evidence, *, query_groups=None, engine=None, candidate=None, source_scope_ids=None, previous_review=None):
     """Find conflicts, then independently check and consolidate them using the same raw pool."""
     from sqlalchemy import select
     from sqlalchemy.orm import Session
@@ -270,6 +282,23 @@ def review_campaign(client, settings, campaign, messages, evidence, *, query_gro
                        DocumentChunk.chunker_version == CHUNKER_VERSION,
                        DocumentChunk.source_hash == Document.content_hash)).all())
         pool = [e for e in pool if current.get(e['chunk_id']) == e.get('content', '')]
+    if source_scope_ids is not None:
+        pool = [p for p in pool if p['chunk_id'] in source_scope_ids]
+    from app.brand.evidence_scope import select_stage
+    authority_map = None
+    if engine is not None:
+        from app.brand.authority import authority_status
+        active = authority_status(engine, campaign.brand_id).get('active')
+        if active and active.get('current'):
+            authority_map = active['map']
+    requirements = campaign.data.get('requirements') or {}
+    formats = {a['format'] for a in requirements.get('assets', []) if a.get('format')}
+    from app.llm.context_collections import CHANNELS
+    user_text = '\n'.join(m.get('text', '') for m in messages if m.get('role') == 'user')
+    formats.update(channel for channel, pattern in CHANNELS.items() if re.search(r'\b(?:' + pattern + r')\b', user_text, re.I))
+    protected = {key for finding in campaign.data.get('conflicts', []) for key in finding.get('source_ids', [])}
+    eligible, scope_audit = select_stage(pool, formats, protected=protected, authority=authority_map, defer_execution=False)
+    pool = [p for p in pool if p['chunk_id'] in eligible]
     refs = {f'source_{i}': item for i, item in enumerate(sorted(pool, key=lambda e: e['chunk_id']))}
     assets = [a['id'] for a in (campaign.data.get('requirements') or {}).get('assets', [])]
     passages = [{'ref': ref, **{k: item[k] for k in
@@ -277,6 +306,10 @@ def review_campaign(client, settings, campaign, messages, evidence, *, query_gro
                 for ref, item in refs.items()]
     payload = {'conversation': review_conversation(messages), 'requirements': campaign.data.get('requirements'),
                'current_decisions': review_decisions(campaign), 'passages': passages, 'candidate': candidate}
+    if previous_review is not None:
+        payload['previous_review'] = {k: v for k, v in previous_review.items()
+            if k in {'limitations', 'treatments'}}
+        payload['review_scope'] = 'Review only changes and selected evidence against the prior completed review. Prior coverage outside this scope is preserved, not re-certified.'
     key = digest([VERSION, campaign.id, settings.magi_conflict_review_model, payload])
     corpus = fingerprint(engine, campaign.brand_id) if engine is not None else None
     schema = direct_schema(refs, assets)
@@ -291,6 +324,14 @@ def review_campaign(client, settings, campaign, messages, evidence, *, query_gro
                     stages[artifact.payload['stage']] = artifact.payload['result']
 
     batch_counts = {}
+    shared_instructions = DECISION_GUIDANCE + GUIDANCE + QUESTION_CHECK
+
+    def request_size(content, task):
+        # Budget the same message envelope that is actually sent, including the
+        # task directive and the schema. Batching must not omit growing reviews.
+        return token_count(json.dumps(cacheable_input(review_prompt(content, task),
+                           settings.magi_conflict_review_model, 1)) + shared_instructions
+                           + json.dumps(schema.model_json_schema()))
 
     def citation_errors(parsed):
         return [
@@ -302,8 +343,7 @@ def review_campaign(client, settings, campaign, messages, evidence, *, query_gro
         ]
 
     def call(stage, instructions, content):
-        overhead = DECISION_GUIDANCE + instructions + json.dumps(schema.model_json_schema())
-        fits = lambda value: token_count(json.dumps(value) + overhead) <= MAX_INPUT_TOKENS
+        fits = lambda value: request_size(value, instructions) <= MAX_INPUT_TOKENS
         batches = review_inputs(content, fits)
         batch_counts[stage] = len(batches)
         if len(batches) == 1:
@@ -335,12 +375,13 @@ def review_campaign(client, settings, campaign, messages, evidence, *, query_gro
             # attempt fail. A retry must get fresh evidence review for that stage.
             if not citation_errors(parsed):
                 return parsed
-        serialized = json.dumps(content)
-        if token_count(serialized + DECISION_GUIDANCE + instructions + json.dumps(schema.model_json_schema())) > MAX_INPUT_TOKENS:
+        if request_size(content, instructions) > MAX_INPUT_TOKENS:
             raise RetrievalError('Review batch exceeds the request budget', 'review_context_too_large')
         result = run_review(client, ModelRequest(operation='campaign_' + stage,
-            model=settings.magi_conflict_review_model, instructions=DECISION_GUIDANCE + instructions,
-            input=serialized, max_output_tokens=24000,
+            model=settings.magi_conflict_review_model, instructions=shared_instructions,
+            prompt_cache_key=prompt_cache_key(campaign.brand_id, 'campaign_conflict_review'),
+            cache_prefix_messages=1,
+            input=review_prompt(content, instructions), max_output_tokens=24000,
             timeout_seconds=max(settings.magi_openai_timeout_seconds, 300),
             context=RunContext(brand_id=campaign.brand_id, campaign_id=campaign.id)), schema, engine)
         parsed = schema.model_validate(result.parsed.model_dump())
@@ -351,8 +392,8 @@ def review_campaign(client, settings, campaign, messages, evidence, *, query_gro
                  'run_id': result.run_id, 'result': parsed.model_dump()})
         return parsed
 
-    first = call('conflict_find', GUIDANCE + QUESTION_CHECK, payload)
-    final = call('conflict_check', GUIDANCE + QUESTION_CHECK +
+    first = call('conflict_find', 'Discover material conflicts in the supplied original evidence and brief.', payload)
+    final = call('conflict_check',
         ' Independently inspect the original brief and passages, not just the proposed findings. '
         'Find missed restrictions and source conflicts. Verify each proposed finding against original '
         'evidence; remove unsupported findings and explain rejected issues in limitations. Return the '
@@ -364,7 +405,7 @@ def review_campaign(client, settings, campaign, messages, evidence, *, query_gro
     # an incomplete review into a ready receipt. Recheck against original inputs.
     errors = citation_errors(final)
     if errors:
-        final = call('conflict_grounding_repair', GUIDANCE + QUESTION_CHECK +
+        final = call('conflict_grounding_repair',
             ' Repair the review using the original passages and user messages. '
             'Copy each grounding quote as one contiguous VERBATIM substring of its '
             'cited passage or user message, preserving Markdown and whitespace. '
@@ -404,6 +445,6 @@ def review_campaign(client, settings, campaign, messages, evidence, *, query_gro
         'status': 'needs_decision' if findings else 'ready', 'source_count': len(pool),
         'review_passes': 2, 'review_batches': batch_counts, 'coverage_challenged': True, 'findings': findings,
         'limitations': limitations, 'treatments': treatments,
-        'source_snapshot': evidence_snapshot(pool)}
+        'source_snapshot': evidence_snapshot(pool), 'evidence_scope': scope_audit}
     return {'findings': findings, 'report': report}
 

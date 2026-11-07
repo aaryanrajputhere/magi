@@ -1,8 +1,9 @@
 """Only grounded, incompatible requirements should become user questions."""
-import json
+
 from types import SimpleNamespace
 
 import pytest
+from review_helpers import review_payload
 
 from app.brand import conflict_coverage as coverage
 from app.config import Settings
@@ -41,7 +42,7 @@ def test_question_check_before_findings_are_published(monkeypatch, brief, rule, 
     def run(request, *, output_model):
         requests.append(request)
         assert 'Does this require a user decision' in request.instructions
-        assert json.loads(request.input)['conversation'][0]['text'] == brief
+        assert review_payload(request)['conversation'][0]['text'] == brief
         strict_output_schema(output_model)
         return SimpleNamespace(parsed=output_model.model_validate({
             'conflicts': [proposed], 'limitations': [], 'blocking_gaps': []}), run_id='test')
@@ -117,7 +118,7 @@ def test_retry_replaces_cached_review_with_unverified_citations(monkeypatch):
     def run(request, *, output_model):
         requests.append(request)
         if request.operation == 'campaign_conflict_grounding_repair':
-            error = json.loads(request.input)['validation_errors'][0]
+            error = review_payload(request)['validation_errors'][0]
             assert error['finding_index'] == 0
             assert error['grounding'][1]['quote'] == 'Invented quotation.'
         value = {'conflicts': [finding(brief, rule)], 'limitations': [], 'blocking_gaps': []} if succeeds else bad

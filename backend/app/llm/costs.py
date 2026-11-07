@@ -14,6 +14,8 @@ class ModelPricing(BaseModel):
     output_per_million: Decimal
     # None means no supported separately priced cache-write billing rule.
     cache_write_per_million: Decimal | None = None
+    cache_write_count_optional: bool = False
+    long_context_threshold: int | None = None
 
 
 LEGACY_MINI = ModelPricing(
@@ -25,6 +27,19 @@ LEGACY_MINI = ModelPricing(
     output_per_million=Decimal("1.60"),
 )
 PRICING = {"gpt-4.1-mini": LEGACY_MINI, "gpt-4.1-mini-2025-04-14": LEGACY_MINI}
+LUNA = ModelPricing(
+    version="gpt-6-luna-text-standard-2026-11-07",
+    source="https://developers.openai.com/api/docs/models/gpt-6-luna",
+    verified_on="2026-11-07",
+    input_per_million=Decimal("0.10"),
+    cached_input_per_million=Decimal("0.01"),
+    output_per_million=Decimal("0.50"),
+    cache_write_per_million=Decimal("0.125"),
+    # Older Responses usage omits the separate write counter.
+    cache_write_count_optional=True,
+    long_context_threshold=272_000,
+)
+PRICING["gpt-6-luna"] = LUNA
 
 
 class UsageEstimate(BaseModel):
@@ -112,16 +127,26 @@ def estimate_usage(
             return estimate
         writes = 0  # Legacy snapshot has no separate cache-write charge.
     elif writes is None:
-        estimate.cost_reason = "Cache-write count not reported for separate-write pricing"
-        return estimate
+        if not pricing.cache_write_count_optional:
+            estimate.cost_reason = "Cache-write count not reported for separate-write pricing"
+            return estimate
+        writes = 0
     elif pricing.cache_write_per_million < 0:
         estimate.cost_reason = "Invalid cache-write rate"
         return estimate
+    long_context = (
+        pricing.long_context_threshold is not None and incoming > pricing.long_context_threshold
+    )
+    input_multiplier = Decimal(2) if long_context else Decimal(1)
+    output_multiplier = Decimal("1.5") if long_context else Decimal(1)
     estimate.estimated_cost_usd = (
-        Decimal(incoming - cached - writes) * pricing.input_per_million
-        + Decimal(cached) * pricing.cached_input_per_million
-        + Decimal(writes) * (pricing.cache_write_per_million or 0)
-        + Decimal(outgoing) * pricing.output_per_million
+        (
+            Decimal(incoming - cached - writes) * pricing.input_per_million
+            + Decimal(cached) * pricing.cached_input_per_million
+            + Decimal(writes) * (pricing.cache_write_per_million or 0)
+        )
+        * input_multiplier
+        + Decimal(outgoing) * pricing.output_per_million * output_multiplier
     ) / Decimal(1_000_000)
     estimate.cost_status = "estimated"
     return estimate

@@ -168,6 +168,14 @@ def test_inspector_includes_legacy_retrieval_planning_run(tmp_path):
             session.commit()
         runs = client.get("/api/campaigns/campaign/runs").json()
         assert [run["id"] for run in runs] == ["planner", "current"]
+        summaries = client.get("/api/campaigns/campaign/runs?summary=true").json()
+        assert [run["id"] for run in summaries] == ["planner", "current"]
+        assert all(run["request"] is None and run["response"] is None for run in summaries)
+        detail = client.get("/api/campaigns/campaign/runs?run_id=current").json()
+        assert len(detail) == 1
+        assert detail[0]["response"] == {"output_text": "Questions"}
+        assert client.get("/api/campaigns/campaign/runs?run_id=other-campaign").json() == []
+
 
 
 def test_message_route_schema_requires_nullable_target():
@@ -240,3 +248,19 @@ def test_short_conversation_needs_no_condensation_call():
     messages = [{"role": "user", "text": "Create one email"}]
     assert campaigns.campaign_retrieval_brief(
         Client(), Settings(_env_file=None), None, messages, "Create one email") == json.dumps(messages)
+
+
+def test_campaign_sidebar_summaries_exclude_history(tmp_path):
+    settings = Settings(_env_file=None, magi_database_url=f"sqlite:///{tmp_path / 'summary.db'}")
+    with TestClient(create_app(settings)) as client:
+        with client.app.state.sessions() as session:
+            session.add(campaigns.Campaign(id="campaign", brand_id="brand", data={
+                "messages": [{"role": "user", "text": "Launch campaign"}],
+                "plans": [{"private": "large plan"}],
+                "trace": [{"details": "large evidence"}]}))
+            session.commit()
+        summary = client.get("/api/campaigns?summary=true").json()[0]
+        assert summary["title"] == "Launch campaign"
+        assert summary["messages"] == [] and summary["plans"] == []
+        assert "trace" not in summary
+        assert client.get("/api/campaigns/campaign").json()["plans"]

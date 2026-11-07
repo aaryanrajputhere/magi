@@ -2,6 +2,7 @@
 import hashlib
 import ipaddress
 import json
+import re
 import socket
 import time
 from urllib.parse import urlsplit
@@ -39,16 +40,40 @@ def public_url(url):
         return False
 
 
+def research_needs(campaign, requirements):
+    """Only concrete unmet external factual needs justify public research."""
+    needs = []
+    for need in campaign.data.get('research_needs', []):
+        if (need.get('status') == 'missing' and need.get('kind') == 'external_fact'
+                and need.get('question') and need.get('intended_use')):
+            needs.append({k: need[k] for k in ('question', 'intended_use')})
+    for text in requirements.get('unknowns', []):
+        if (re.search(r'need|missing|require|find|obtain', text, re.IGNORECASE)
+                and re.search(r'industry|market|third.party|benchmark', text, re.IGNORECASE)
+                and re.search(r'statistic|figure|data|benchmark|fact', text, re.IGNORECASE)
+                and not re.search(r'optional|could|welcome|brand|certif|authorization|customer proof|permission', text, re.IGNORECASE)):
+            needs.append({'question': text, 'intended_use': 'Fill the recorded planning evidence gap.'})
+    # Public research cannot establish private company facts even if a gap was misclassified.
+    return [n for n in needs if not re.search(r'FedRAMP|SOC 2|our certification|customer permission|brand fact', n['question'], re.IGNORECASE)]
+
+
 def research(session, campaign, requirements, client, settings):
     from app.llm.client import ModelRequest
     from app.llm.context import RunContext
-    fingerprint = hashlib.sha256(json.dumps(requirements, sort_keys=True).encode()).hexdigest()
+    needs = research_needs(campaign, requirements)
+    fingerprint = hashlib.sha256(json.dumps(['gap_research_v1', requirements, needs], sort_keys=True).encode()).hexdigest()
     previous = list(session.scalars(select(ResearchRun).where(ResearchRun.campaign_id == campaign.id)))
     for run in reversed(previous):
-        if run.data['fingerprint'] == fingerprint and time.time() - run.data['created_at'] < 86400:
+        if (run.data['fingerprint'] == fingerprint and time.time() - run.data['created_at'] < 86400
+                and (needs or (run.data.get('status') == 'skipped' and not run.data.get('sources')))):
             return run.data
     data = {'fingerprint': fingerprint, 'created_at': time.time(), 'status': 'skipped', 'sources': [],
                 'requests': [], 'estimated_credits': 0, 'reason': 'Firecrawl key is not configured'}
+    if not needs:
+        data['reason'] = 'Skipped: no concrete unmet external factual need; optional audience background does not justify research.'
+        session.add(ResearchRun(id=str(uuid4()), campaign_id=campaign.id, data=data))
+        session.commit()
+        return data
     if not settings.firecrawl_api_key:
         return data
     run = ResearchRun(id=str(uuid4()), campaign_id=campaign.id, data=data)
@@ -57,8 +82,8 @@ def research(session, campaign, requirements, client, settings):
     try:
         decision = client.run(ModelRequest(operation='campaign_research_plan',
             model=settings.magi_retrieval_planner_model, max_output_tokens=800,
-            instructions='Decide whether external industry research helps this campaign. Return no queries if unnecessary. Never search for the brand/company itself. Queries must be generic public industry questions, without private details, brand identities or internal metrics. At most two queries. Research cannot establish brand facts.',
-            input=json.dumps(requirements), context=RunContext(brand_id=campaign.brand_id, campaign_id=campaign.id)), output_model=ResearchDecision)
+            instructions='Research only the supplied unmet external factual needs and their intended use. Optional audience background is insufficient. Decide whether external research is necessary. Return no queries if unnecessary. Never search for the brand/company itself. Queries must be generic public industry questions, without private details, brand identities or internal metrics. At most two queries. Research cannot establish brand facts.',
+            input=json.dumps({'unmet_needs': needs, 'requirements': {k: v for k, v in requirements.items() if k not in {'run_id', 'extraction_run_id'}}}), context=RunContext(brand_id=campaign.brand_id, campaign_id=campaign.id)), output_model=ResearchDecision)
         data['reason'] = decision.parsed.reason
         data['decision_run_id'] = decision.run_id
         brand = session.get(__import__('app.models', fromlist=['Brand']).Brand, campaign.brand_id)

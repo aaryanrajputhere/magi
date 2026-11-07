@@ -45,7 +45,7 @@ def test_payloads_preserve_rules_without_repeating_passages():
 def test_three_asset_pipelines_preserve_results_and_retry(tmp_path, monkeypatch, fail_one):
     engine = create_database_engine(f'sqlite:///{tmp_path}/parallel.db')
     initialize_database(engine)
-    assets = [{'id': f'a{i}', 'format': 'linkedin'} for i in range(6)]
+    assets = [{'id': f'a{i}', 'format': 'linkedin', 'purpose': 'Awareness'} for i in range(6)]
     plan = {'goal': 'Goal', 'review_id': 'review', 'assets': assets}
     with Session(engine) as session:
         session.add(api.Campaign(id='c', brand_id='b', state='generating', version=1,
@@ -76,6 +76,13 @@ def test_three_asset_pipelines_preserve_results_and_retry(tmp_path, monkeypatch,
         def close(self):
             closed.append(self)
         def run(self, request, **kwargs):
+            if request.operation == 'route_asset_context':
+                payload = {k: v for message in request.input for k, v in json.loads(message['content']).items()}
+                refs = [p['chunk_id'] for p in payload['sources']]
+                return SimpleNamespace(run_id='routing', parsed=kwargs['output_model'].model_validate({
+                    'assets': [{'asset_id': a['id'], 'writing': refs, 'validation': refs,
+                                'image': [], 'production_dependencies': []}
+                               for a in payload['approved_plan']['assets']]}))
             with lock:
                 calls.append(request.context.asset_id)
             if state['sync']:
@@ -84,6 +91,7 @@ def test_three_asset_pipelines_preserve_results_and_retry(tmp_path, monkeypatch,
                 raise RuntimeError('one failed')
             payload = {k: v for message in request.input for k, v in json.loads(message['content']).items()}
             assert 'evidence' not in payload['package']['rule_pack']
+            assert payload['asset_sources']['evidence']
             assert payload['brand_preferences'] == [
                 {'id': 'local', 'text': 'Use short paragraphs', 'revision': 1}]
             return SimpleNamespace(run_id='run', parsed=api.GeneratedDraft(title='Draft', body='Copy',
@@ -96,7 +104,7 @@ def test_three_asset_pipelines_preserve_results_and_retry(tmp_path, monkeypatch,
         drafts = campaign.data['generation']['drafts']
         assert [d['asset_id'] for d in drafts] == [a['id'] for a in assets if not (fail_one and a['id'] == 'a1')]
         assert campaign.data['generation']['active_assets'] == []
-    assert len(clients) == len(closed) == 6
+    assert len(clients) == len(closed) == 7  # One router client and six workers.
     if fail_one:
         state.update(fail=False, sync=False)
         api.generate_drafts(engine, 'c', Settings(_env_file=None))

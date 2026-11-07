@@ -78,7 +78,7 @@ def main() -> int:
     show = commands.add_parser("show")
     show.add_argument("run_id")
     smoke = commands.add_parser("smoke", help="Makes one billable API request")
-    smoke.add_argument("--model", default="gpt-4.1-mini")
+    smoke.add_argument("--model", default="gpt-6-luna")
     args = parser.parse_args()
     if args.command == "list" and not 1 <= args.limit <= 100:
         parser.error("--limit must be between 1 and 100")

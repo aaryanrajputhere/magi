@@ -1,5 +1,29 @@
 # Campaign costs
 
+## Updated before-and-after results
+
+The after results below are from the three updated campaign runs supplied on November 7, 2026. All three updated briefs are now included. Historical measurements remain below for reference.
+
+| Brief | Before total tokens | After total tokens | Before known estimated USD | After known estimated USD | Cache hit rate: before → after |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Leashgate GA launch | 11,386,299 reported; one call has unknown usage | 1,194,114 | $3.06979200 | $0.158508395 | 12.13% → 39.24% |
+| Q1 awareness push | 2,998,637 | 644,943 | $0.79163360 | $0.080754825 | 0.30% → 37.22% |
+| Regulated teams push | 4,179,238 | 693,224 | $1.14817800 | $0.084598070 | 4.98% → 35.78% |
+
+### Updated run usage
+
+| Brief | Calls | Input tokens | Output tokens | Cached input tokens | Unknown-cost calls |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Leashgate GA launch | 66 | 1,024,453 | 169,661 | 402,028 | 1 |
+| Q1 awareness push | 33 | 572,745 | 72,198 | 213,200 | 0 |
+| Regulated teams push | 32 | 622,919 | 70,305 | 222,898 | 0 |
+
+Reported total token usage fell by approximately 89.5% for Leashgate, 78.5% for Q1 awareness, and 83.4% for regulated teams. Cached tokens are included in input tokens, not added to the total. Cache hit rates use total cached input tokens divided by total input tokens.
+
+Costs already account for cached-token pricing. Historical costs exclude unpriced calls (30 for Leashgate, 17 for Q1 awareness, and 14 for regulated teams); the updated Leashgate cost also excludes one unpriced call. All updated Q1 and regulated-teams calls have cost estimates. These figures are estimates rather than provider invoices, and incomplete subtotals do not establish the full cost reduction.
+
+Source: the local campaign API and its run-summary endpoint for the supplied updated runs. The existing historical figures below are preserved rather than repriced. Shared preparation and external research USD costs are excluded as described in the historical report.
+
 ## Brief 1: Leashgate GA launch
 
 [Campaign in the app](http://localhost:5173/#campaigns/34dc9933-7f5e-4984-9600-d6917c6a801a) · campaign ID: `34dc9933-7f5e-4984-9600-d6917c6a801a`

@@ -1,0 +1,1027 @@
+
+REQUEST 1 afa71028-680a-4e14-abe9-0531554f3bd4 campaign_memory gpt-6-luna 842 tokens cache=0 duration=5149
+{"changes":[]}
+
+REQUEST 2 0aa543f3-c82b-436c-a522-0a8745737d8a campaign_agent_step gpt-6-luna 2666 tokens cache=1299 duration=1553
+{'id': 'fc_01d5b8eb8385575e016aee71cefc3487d2bff5468eaeb9c731', 'type': 'function_call', 'status': 'completed', 'arguments': '{"addition":false}', 'call_id': 'call_XuRL5H2o0FSsKFXGqLCCyt6M', 'name': 'extract_requirements'}
+
+REQUEST 3 7ad2aa0f-1d07-4fc6-8257-da5ca8661212 campaign_requirements gpt-6-luna 1889 tokens cache=1234 duration=40665
+{
+  "topic": "Regulated teams push — February–March 2027",
+  "topic_details": [
+    {
+      "heading": "Background",
+      "content": "The brief is from Sanne Holloran, Field Marketing, to the Campaign team, dated October 19, 2026. Sanne says she listened to sales calls and reviewed Q3 deck notes, and believes marketing is not reflecting what is working in sales conversations with regulated teams. The campaign is intended to address that gap."
+    },
+    {
+      "heading": "Campaign idea and requested claims",
+      "content": "The brief says regulated buyers care first about whether they can trust the vendor, and directs the campaign to lead with FedRAMP. It states that slide 5 of the deck says Wickhold is FedRAMP Authorized and that the notes call this a door opener for public sector and anything touching federal money. The requested headline wording is “Wickhold is FedRAMP Authorized.” SOC 2 Type II, renewed January 2026, should appear beside it. Sanne says this is not well known outside sales and is a stronger story than the company has been telling. These are campaign requirements from the brief, not independently verified claims."
+    },
+    {
+      "heading": "Customer story",
+      "content": "Feature Vaskell Health as the centerpiece. The brief describes it as the sales team's go-to healthcare story and says the case study is written and in the folder. The requested result is that audit preparation was cut by three weeks with Wickhold Evenburn; put the three-weeks number up front. Include a quote from Temi Okereke-Voss, Director of Security. The quote's actual wording is not included in the brief. The brief says the account is friendly and the story has been used on healthcare calls this quarter; that does not establish customer publication permission."
+    },
+    {
+      "heading": "Audience",
+      "content": "Security leaders at healthcare organizations and at companies selling into the public sector. Platform teams may be pulled in later, but this campaign should speak to the security side. The audience is on the security leadership email list and follows Wickhold on LinkedIn more than anywhere else."
+    },
+    {
+      "heading": "Goals and call to action",
+      "content": "The campaign goal is demo requests from regulated security teams. Sales would like 25 qualified demo requests by the end of March. The main action is “Book a demo.” The 25-request figure is an internal campaign target."
+    },
+    {
+      "heading": "Product focus",
+      "content": "Evenburn is the product focus, with Wickhold Quenchline as supporting detail."
+    },
+    {
+      "heading": "Channel direction and scope",
+      "content": "The sender delegates the asset mix and asks for a recommendation, with rationale and sign-off on the plan. The requested channel boundary is owned channels: social posts, blog posts, landing pages, and emails. This should be a focused push, not a large launch."
+    },
+    {
+      "heading": "Campaign timing and review",
+      "content": "The campaign goes live Tuesday, February 16, 2027, and runs through March 31, 2027. The brief says the numbers are already in the deck and hopes review will be quick; this is not an approval or confirmation that claims or customer materials are cleared for publication."
+    }
+  ],
+  "constraints": [
+    "Keep the campaign to owned channels.",
+    "Keep the scope focused and modest.",
+    "Preserve the stated campaign goal, audience, product priorities, and requested message hierarchy.",
+    "The campaign window is February 16 through March 31, 2027."
+  ],
+  "assets": [
+    {
+      "id": "LP-01",
+      "format": "landing_page",
+      "audience": "Security leaders at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Generate demo requests from regulated security teams; use “Book a demo” as the main action.",
+      "timing": "Recommended publication: February 16, 2027; remain available through March 31, 2027.",
+      "sender_or_byline": null,
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Security leaders at healthcare organizations and at companies selling into the public sector."
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "Demo requests from regulated security teams. Sales would like 25 qualified ones by the end of March. Main action is \"Book a demo\"."
+        },
+        {
+          "field": "timing",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Lead with FedRAMP."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Something like \"Wickhold is FedRAMP Authorized\" as the headline, with SOC 2 Type II, renewed January 2026, right beside it."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Feature Vaskell Health. This is the sales team's go-to healthcare story and it fits perfectly: audit preparation cut by three weeks with Wickhold Evenburn."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Use the three-weeks number up front, and pull in the quote from Temi Okereke-Voss, their Director of Security."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Product focus is Evenburn, with Wickhold Quenchline as supporting detail."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Keep it to our owned channels: social posts, blog posts, landing pages and emails."
+        }
+      ],
+      "constraints": [
+        "Lead with FedRAMP. Use the requested headline wording “Wickhold is FedRAMP Authorized,” with SOC 2 Type II, renewed January 2026, beside it.",
+        "Make the Vaskell Health case study the centerpiece. Put the three-weeks audit-preparation result up front and include the quote attributed to Temi Okereke-Voss, Director of Security. Do not invent quote wording; use the case study source.",
+        "Focus on Evenburn and use Wickhold Quenchline as supporting detail.",
+        "Use “Book a demo” as the main call to action.",
+        "Customer-name, case-study, and quote publication permission is not established by the brief; confirm before publication."
+      ]
+    },
+    {
+      "id": "EM-01",
+      "format": "email",
+      "audience": "Security leaders on the security leadership email list at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Generate demo requests from regulated security teams; use “Book a demo” as the main action.",
+      "timing": "Recommended send: February 16, 2027.",
+      "sender_or_byline": "Wickhold Field Marketing (proposed; sender not specified in the brief).",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "They're on the security leadership email list"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "Demo requests from regulated security teams. Sales would like 25 qualified ones by the end of March. Main action is \"Book a demo\"."
+        },
+        {
+          "field": "timing",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Lead with FedRAMP."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Feature Vaskell Health."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Product focus is Evenburn, with Wickhold Quenchline as supporting detail."
+        }
+      ],
+      "constraints": [
+        "Lead with the requested FedRAMP message and mention SOC 2 Type II, renewed January 2026.",
+        "Feature the Vaskell Health three-weeks audit-preparation result with Evenburn; do not invent the wording of Temi Okereke-Voss's quote if it is included.",
+        "Use Evenburn as the product focus and Quenchline as supporting detail.",
+        "Use “Book a demo” as the main call to action.",
+        "Customer-story and quote publication permission is not established by the brief; confirm before publication."
+      ]
+    },
+    {
+      "id": "BA-01",
+      "format": "blog",
+      "audience": "Security leaders at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Support the campaign goal of generating demo requests from regulated security teams.",
+      "timing": "Recommended publication: February 18, 2027.",
+      "sender_or_byline": "Wickhold (proposed; byline not specified in the brief).",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Security leaders at healthcare organizations and at companies selling into the public sector."
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "Demo requests from regulated security teams."
+        },
+        {
+          "field": "timing",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "The idea\nRegulated buyers care about one thing first: can they trust the vendor. So let's open with that."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Product focus is Evenburn, with Wickhold Quenchline as supporting detail."
+        }
+      ],
+      "constraints": [
+        "Address regulated buyers' stated trust concern and preserve the FedRAMP-first campaign message, with SOC 2 Type II renewed January 2026 as supporting detail.",
+        "Keep the blog focused on security leaders and the campaign's Evenburn product focus, with Quenchline as supporting detail.",
+        "Include a “Book a demo” route aligned with the campaign action.",
+        "Do not elevate the campaign into a broader leadership claim or describe the campaign as a new announcement."
+      ]
+    },
+    {
+      "id": "LI-01",
+      "format": "linkedin",
+      "audience": "Security leaders at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Support the campaign goal of generating demo requests from regulated security teams.",
+      "timing": "Recommended publication: February 16, 2027.",
+      "sender_or_byline": "Wickhold (proposed; account/byline not specified in the brief).",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Security leaders at healthcare organizations and at companies selling into the public sector."
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "Demo requests from regulated security teams."
+        },
+        {
+          "field": "timing",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Lead with FedRAMP."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "They follow us on LinkedIn more than anywhere else."
+        }
+      ],
+      "constraints": [
+        "Use the requested FedRAMP-first message and mention SOC 2 Type II, renewed January 2026.",
+        "Keep the post relevant to security leaders in the stated campaign audience.",
+        "Direct the audience to the campaign landing page and “Book a demo” action."
+      ]
+    },
+    {
+      "id": "LI-02",
+      "format": "linkedin",
+      "audience": "Security leaders at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Support the campaign goal of generating demo requests from regulated security teams.",
+      "timing": "Recommended publication: March 2, 2027.",
+      "sender_or_byline": "Wickhold (proposed; account/byline not specified in the brief).",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Security leaders at healthcare organizations and at companies selling into the public sector."
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "Demo requests from regulated security teams."
+        },
+        {
+          "field": "timing",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Feature Vaskell Health."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Use the three-weeks number up front, and pull in the quote from Temi Okereke-Voss, their Director of Security."
+        }
+      ],
+      "constraints": [
+        "Feature the Vaskell Health case study and lead with the stated three-weeks audit-preparation result with Evenburn.",
+        "Use Temi Okereke-Voss's quote only from the case study source; do not invent quote wording.",
+        "Direct the audience to the campaign landing page and “Book a demo” action.",
+        "Customer-name and quote publication permission is not established by the brief; confirm before publication."
+      ]
+    },
+    {
+      "id": "LI-03",
+      "format": "linkedin",
+      "audience": "Security leaders at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Support the campaign goal of generating demo requests from regulated security teams.",
+      "timing": "Recommended publication: March 16, 2027.",
+      "sender_or_byline": "Wickhold (proposed; account/byline not specified in the brief).",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Security leaders at healthcare organizations and at companies selling into the public sector."
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "Demo requests from regulated security teams."
+        },
+        {
+          "field": "timing",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "proposed",
+          "quote": null
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Product focus is Evenburn, with Wickhold Quenchline as supporting detail."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Main action is \"Book a demo\"."
+        }
+      ],
+      "constraints": [
+        "Reinforce Evenburn as the product focus and Wickhold Quenchline as supporting detail.",
+        "Keep the post aimed at regulated security teams and direct them to “Book a demo.”",
+        "Use the campaign landing page as the destination."
+      ]
+    }
+  ],
+  "unknowns": [
+    "The brief does not provide the wording of Temi Okereke-Voss's quote; retrieve it from the case study rather than creating wording.",
+    "Customer permission to publish the Vaskell Health name, case-study results, and attributed quote is not established in the brief.",
+    "The campaign email sender and blog/social bylines are not specified; the recommendations above are proposed.",
+    "The brief does not specify per-asset publication dates; the proposed dates are a modest recommended schedule within the stated campaign window."
+  ],
+  "issues": []
+}
+
+REQUEST 4 81fc4552-cea1-44f3-9af9-d6f277a2dd97 campaign_agent_step gpt-6-luna 2959 tokens cache=2540 duration=1901
+{'id': 'fc_01d5b8eb8385575e016aee71f9b26887d28f87c0eb29199da0', 'type': 'function_call', 'status': 'completed', 'arguments': '{"addition":false}', 'call_id': 'call_V0uOwtSeSFuK0WnTRKPyNhAf', 'name': 'retrieve_context'}
+
+REQUEST 5 eb69e24a-f443-453a-bade-f7366c0a3880 plan_retrieval gpt-6-luna 3886 tokens cache=0 duration=11310
+{
+  "analysis": {
+    "topic": "FedRAMP authorization and SOC 2 Type II status for a regulated-teams campaign",
+    "products": [
+      "Wickhold Evenburn",
+      "Wickhold Quenchline"
+    ],
+    "audience": "Security leaders at healthcare organizations and companies selling into the public sector",
+    "channels": [
+      "Landing page",
+      "Email",
+      "Blog",
+      "LinkedIn"
+    ],
+    "requested_assets": [
+      {
+        "kind": "Landing page",
+        "channel": "Owned web",
+        "count": 1
+      },
+      {
+        "kind": "Email",
+        "channel": "Owned email",
+        "count": 1
+      },
+      {
+        "kind": "Blog post",
+        "channel": "Owned blog",
+        "count": 1
+      },
+      {
+        "kind": "Social post",
+        "channel": "LinkedIn",
+        "count": 3
+      }
+    ],
+    "unknowns": [
+      "The requested FedRAMP and SOC 2 Type II statements are campaign claims, not independently verified; confirm current status, approved wording, and restrictions.",
+      "The actual wording of Temi Okereke-Voss's quote is not in the brief; retrieve it from the source case study.",
+      "Permission to publish the Vaskell Health name, case-study results, and attributed quote is not established.",
+      "The campaign email sender and blog/social bylines are unspecified.",
+      "Asset dates are proposed; the brief specifies the campaign window but not per-asset publication dates."
+    ]
+  },
+  "queries": [
+    {
+      "id": "Q1",
+      "purpose": "topic",
+      "query": "Wickhold FedRAMP authorization status evidence approved wording SOC 2 Type II January 2026",
+      "reason": "Check the status and supporting evidence for the campaign's requested certification statements."
+    },
+    {
+      "id": "Q2",
+      "purpose": "claims",
+      "query": "Wickhold security certification claims restrictions review approval FedRAMP SOC 2",
+      "reason": "Find applicable claim-substantiation, wording, and publication-review restrictions."
+    },
+    {
+      "id": "Q3",
+      "purpose": "product",
+      "query": "Vaskell Health Evenburn audit preparation three weeks Temi Okereke-Voss quote case study permission",
+      "reason": "Retrieve the source for the customer result and exact quote, and check whether publication permission is documented."
+    },
+    {
+      "id": "Q4",
+      "purpose": "channel",
+      "query": "Wickhold owned channel requirements landing page email blog LinkedIn security leadership Book a demo",
+      "reason": "Find channel-specific guidance and approved calls to action for the requested owned-channel assets."
+    },
+    {
+      "id": "Q5",
+      "purpose": "voice",
+      "query": "Wickhold brand voice regulated security leaders sales calls Q3 deck notes",
+      "reason": "Identify established voice and messaging relevant to regulated security audiences and sales conversations."
+    }
+  ]
+}
+
+REQUEST 6 fef08eef-743d-40cb-b65d-c3219486c90c campaign_conflict_find gpt-6-luna 75257 tokens cache=0 duration=48555
+{"conflicts":[{"explanation":"The brief requests a headline that says Wickhold is FedRAMP Authorized. The approved-claims guidance prohibits that claim and prescribes different wording. The brief does not establish that authorization has been completed and published.","grounding":[{"origin":"user","source_ref":null,"quote":"Something like \"Wickhold is FedRAMP Authorized\" as the headline, with SOC 2 Type II, renewed January 2026, right beside it."},{"origin":"source","source_ref":"source_68","quote":"Never claim FedRAMP authorization or certification. The approved wording above is the only wording."}],"requires_user_decision":false,"treatment":"Repair the wording without seeking confirmation: use the exact approved sentence, “Wickhold is pursuing FedRAMP Moderate authorization.” It retains a FedRAMP lead without claiming authorization. Check the current certification-status sheet before the scheduled publication; the supplied sheet was last checked October 2, 2026.","statements":["The brief requests “Wickhold is FedRAMP Authorized” as a headline.","The approved-claims source says never to claim FedRAMP authorization and permits only its prescribed wording."],"source_refs":["source_68","source_212"],"affected_asset_ids":["LP-01","EM-01","BA-01","LI-01","LI-02","LI-03"],"decision_type":"claim_wording","question":"No user decision is needed: replace the requested authorization claim with the approved FedRAMP wording.","options": [ "Use the exact approved wording: “Wickhold is pursuing FedRAMP Moderate authorization.”"  
+		
+	 
+									, "Remove the FedRAMP claim if it does not fit the asset." ]},{"explanation":"The brief asks to make Vaskell Health the centerpiece and use its result and an attributed quote. The customer-reference policy expressly says Vaskell is not cleared for external use; the case-study file also contains a Legal hold. A friendly account or prior sales-call use does not establish permission to publish.","grounding":[{"origin":"user","source_ref":null,"quote":"Feature Vaskell Health. This is the sales team's go-to healthcare story and it fits perfectly: audit preparation cut by three weeks with Wickhold Evenburn."},{"origin":"source","source_ref":"source_222","quote":"Vaskell Health is not cleared. Do not use the name, logo, people, quotes or results in anything external, and do not use them in a customer-facing deck."}],"requires_user_decision":true,"treatment":"The campaign plan cannot feature Vaskell externally on the supplied evidence. Choose a different proof approach, or keep Vaskell out unless the customer provides written approval covering the asset types and Legal updates its clearance. The brief's requested result and quote are not permission to publish them.","statements":["The brief asks for Vaskell Health, its three-week result and an attributed quote to be central to the campaign.","The customer-reference policy says Vaskell Health, its people, quotes and results are not cleared for external use.","The case-study draft says Legal has not cleared it for external use."],"source_refs":["source_222","source_172","source_86"],"affected_asset_ids":["LP-01","EM-01","BA-01","LI-02"],"decision_type":"campaign_choice","question":"How should the campaign handle customer proof given that Vaskell Health is not cleared for external use?","options":["Replace Vaskell with an already approved customer result, such as Lowmoor or Ostler, where it fits the asset.","Omit customer proof and focus on approved product information about Evenburn.","Keep Vaskell out of the plan unless written customer approval for the relevant asset types is obtained and Legal updates the clearance; revise the plan if that happens."]}],"limitations":["The certification-status sheet supplied here was last checked October 2, 2026. Confirm the current status before the planned February 2027 publication; the brief does not prove that authorization has since been completed and published.","Vaskell Health remains uncleared in the supplied evidence. Any later approval must cover the planned asset types and be reflected in Legal's clearance before publication.","This is a campaign-planning review, not publication authorization; complete the applicable claims, customer-reference and channel reviews before publication."],"blocking_gaps":[]}
+
+REQUEST 7 1d2bae6f-3a6e-4c6b-9206-dabdb8ddfe51 campaign_conflict_check gpt-6-luna 76308 tokens cache=71314 duration=46764
+{
+  "conflicts": [
+    {
+      "explanation": "The brief requests an authorization claim, but the supplied legal guidance says FedRAMP Moderate is in process and permits only the exact “pursuing” wording. The campaign can be planned with that wording; the brief does not establish a later change in status.",
+      "grounding": [
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "Something like \"Wickhold is FedRAMP Authorized\" as the headline, with SOC 2 Type II, renewed January 2026, right beside it."
+        },
+        {
+          "origin": "source",
+          "source_ref": "source_68",
+          "quote": "Never claim FedRAMP authorization or certification. The approved wording above is the only wording."
+        }
+      ],
+      "requires_user_decision": false,
+      "treatment": "Repair the claim automatically: use the exact approved sentence, “Wickhold is pursuing FedRAMP Moderate authorization,” or omit the FedRAMP claim. Do not say Wickhold is authorized. The supplied status sheet was last checked October 2, 2026; verify the status before the planned 2027 publication, but do not assume it has changed.",
+      "statements": [
+        "The brief requests “Wickhold is FedRAMP Authorized” as a headline.",
+        "The legal guidance prohibits claiming FedRAMP authorization and specifies approved wording."
+      ],
+      "source_refs": [
+        "source_68",
+        "source_212"
+      ],
+      "affected_asset_ids": [
+        "LP-01",
+        "EM-01",
+        "BA-01",
+        "LI-01"
+      ],
+      "decision_type": "claim_wording",
+      "question": "How should the campaign express Wickhold’s FedRAMP status?",
+      "options": [
+        "Use the exact approved wording: “Wickhold is pursuing FedRAMP Moderate authorization.”",
+        "Omit the FedRAMP claim from an asset where that wording does not fit."
+      ]
+    },
+    {
+      "explanation": "The brief requires Vaskell Health, its three-week result, and Temi Okereke-Voss’s quote to be central to the campaign. The customer-reference policy says Vaskell is not cleared for external use, and the case-study draft records that Legal has not cleared it. Sales use and a friendly account do not establish permission. Because the requested centerpiece cannot be used under the supplied clearance, the campaign plan needs a different proof approach or must remain conditional on obtaining the required approvals.",
+      "grounding": [
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "Feature Vaskell Health. This is the sales team's go-to healthcare story and it fits perfectly: audit preparation cut by three weeks with Wickhold Evenburn."
+        },
+        {
+          "origin": "source",
+          "source_ref": "source_222",
+          "quote": "Vaskell Health is not cleared.** Do not use the name, logo, people, quotes or results in anything external"
+        }
+      ],
+      "requires_user_decision": true,
+      "treatment": "The supplied evidence does not permit the proposed external use. Choose a different proof approach, or make Vaskell conditional on written customer approval covering the relevant asset types and Legal updating its clearance. That condition is not itself permission to publish; keep Vaskell out of external assets unless clearance is obtained.",
+      "statements": [
+        "The brief asks for Vaskell Health’s three-week result and an attributed quote to be central to the campaign.",
+        "The customer-reference policy says Vaskell Health, its people, quotes, and results are not cleared for external use.",
+        "The draft case study records that Legal has not cleared it for external use."
+      ],
+      "source_refs": [
+        "source_222",
+        "source_172",
+        "source_86"
+      ],
+      "affected_asset_ids": [
+        "LP-01",
+        "EM-01",
+        "LI-02"
+      ],
+      "decision_type": "campaign_choice",
+      "question": "How should the campaign handle customer proof while Vaskell Health is not cleared for external use?",
+      "options": [
+        "Replace Vaskell with an already approved customer result where it fits the asset.",
+        "Omit customer proof and focus on approved Evenburn product information.",
+        "Keep Vaskell out of the external plan unless written approval covers the assets and Legal updates its clearance."
+      ]
+    }
+  ],
+  "limitations": [
+    "The candidate proposes publishing the blog on February 18, 2027, a Thursday. The blog playbook specifies Tuesdays and Wednesdays; move that proposed date to an allowed day. The brief sets the campaign window but does not require February 18 specifically.",
+    "The supplied FedRAMP status sheet was last checked October 2, 2026. Verify status before the planned February 2027 publication; the brief’s reference to a sales deck is not evidence of a status change.",
+    "The supplied evidence does not establish Vaskell Health’s publication permission. Any later approval must cover the planned asset types and be reflected in Legal’s clearance before external use.",
+    "This is a campaign-planning review, not publication authorization. Complete applicable publication-time reviews and checks."
+  ],
+  "blocking_gaps": []
+}
+
+REQUEST 8 c0f72de1-16c1-4bf0-b0e4-a421fa3455f3 campaign_research_plan gpt-6-luna 3413 tokens cache=0 duration=2373
+{"reason":"External industry research is unnecessary for this focused owned-channel campaign. The audience, message hierarchy, and assets are specified in the brief; external research cannot verify Wickhold’s compliance claims or Vaskell Health’s results and permissions, which require internal source materials and approvals.","queries":[]}
+
+REQUEST 9 ba6c805c-831b-4f6f-a4a2-1357c9ae14a6 scope_campaign_plan gpt-6-luna 20993 tokens cache=0 duration=9510
+{"source_ids":["1c8464bd-edcd-4e17-81cd-317c32433282","52f1185e-856d-4a13-a2e9-79463e3620d2","146a5fe0-af6d-4475-8525-74ae72e59011","1475f7bc-8d87-4eb3-9fc9-4dece12a6a55","cb464fca-10ce-4726-92c8-69e56971c97d","d0c14399-2877-40a1-b9e2-08aa9c6cf979"],"full_review_required":false,"reason":"The new answer changes customer-proof requirements for LP-01, EM-01, and LI-02 only. These passages cover approved customer results, approval and addition requirements, the Vaskell clearance restriction, and anonymous-example rules. Other campaign requirements are unchanged."}
+
+REQUEST 10 18b44388-5433-42cd-afbd-197a2b60ef58 campaign_plan gpt-6-luna 96011 tokens cache=0 duration=42380
+{
+  "questions": [],
+  "goal": "Generate qualified demo requests from regulated security teams, supporting the stated internal target of 25 by March 31, 2027.",
+  "assumptions": [
+    "Proposed scope: one campaign landing page, one email, one blog article, and three distinct LinkedIn posts across the February 16–March 31, 2027 campaign window.",
+    "The recommended asset dates, formats, and counts are planning choices, not additional requirements from the brief.",
+    "Use the exact approved FedRAMP wording in the outline, subject to a status check before publication; do not assume the status has changed.",
+    "Replace Vaskell Health with the approved Ostler Grocers result where customer proof fits. Omit customer quotes because approved quote wording was not supplied."
+  ],
+  "constraints": [
+    "Keep the campaign to owned channels and maintain the stated focus on security leaders at healthcare organizations and companies selling into the public sector.",
+    "Use the exact approved sentence: “Wickhold is pursuing FedRAMP Moderate authorization.” Do not claim or imply FedRAMP authorization. Verify status before the proposed February 2027 publications; the supplied status sheet was last checked October 2, 2026.",
+    "Use “Wickhold holds SOC 2 Type II.” The supplied source records renewal in January 2026.",
+    "Vaskell Health, its people, results, and quotes are not cleared for external use. Do not use them in these assets.",
+    "Where approved customer proof fits, state the Ostler Grocers result as 63% fewer open critical misconfigurations in 90 days across 1,900 nodes. Do not imply that a new customer should expect the same result or invent quote wording.",
+    "Describe Wickhold Evenburn as reporting drift, exposure paths, and a fix order; it does not change a customer’s environment by itself. Describe Wickhold Quenchline containment actions as occurring only in contain mode; observe mode records what it would have done.",
+    "Use actual CTA labels of four words or fewer. The campaign landing-page URL is not supplied; link to the page once its URL is established, without inventing one.",
+    "For BA-01, the proposed February 18 date is moved to Wednesday, February 17, to follow the blog playbook’s Tuesday/Wednesday publishing guidance.",
+    "Asset-specific operating notes: LP-01 is a campaign page planned to end March 31, 2027; keep it within 500 words and confirm the page URL before linking. EM-01 uses the email playbook’s default sender, Wickhold at hello@wickhold.example. BA-01 needs a real-person byline; Kofi Anselm, Head of Developer Relations, is proposed and requires confirmation. LI-01, LI-02, and LI-03 are separate company-page posts, not one combined post.",
+    "Complete applicable brand, legal, product, and channel reviews before publication. This outline is not publication clearance."
+  ],
+  "assets": [
+    {
+      "id": "LP-01",
+      "format": "landing_page",
+      "audience": "Security leaders at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Plan a focused campaign page that leads with Wickhold’s approved FedRAMP status wording and SOC 2 Type II status, then explains Wickhold Evenburn’s drift, exposure-path, and fix-order reporting. Use the approved Ostler Grocers result as customer proof where it fits, and describe Wickhold Quenchline only as supporting runtime containment. Make the demo request the primary action.",
+      "angle": "A regulated-buyer trust page that pairs the exact approved authorization-in-process wording with a concrete, approved customer result and clear product limits.",
+      "hook": "Wickhold is pursuing FedRAMP Moderate authorization.",
+      "cta": "Book a demo",
+      "timing": "Proposed publication: February 16, 2027; keep live through March 31, 2027."
+    },
+    {
+      "id": "EM-01",
+      "format": "email",
+      "audience": "Security leaders on the security leadership email list at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Send a concise, phone-readable campaign email that states the approved FedRAMP wording first, mentions SOC 2 Type II renewed January 2026, and connects the Ostler Grocers result to the security leader’s interest in audit preparation without promising the same outcome. Position Wickhold Evenburn as the focus and Wickhold Quenchline as supporting detail.",
+      "angle": "A trust-and-proof email: state what is true about Wickhold, then provide one approved customer result and a direct demo path.",
+      "hook": "Wickhold is pursuing FedRAMP Moderate authorization.",
+      "cta": "Book a demo",
+      "timing": "Proposed send: February 16, 2027."
+    },
+    {
+      "id": "BA-01",
+      "format": "blog",
+      "audience": "Security leaders at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Plan a 900–1,400-word article about how regulated security teams can assess vendor status and organize posture work. Open with the exact approved FedRAMP wording and the cited Containment Report statistic required for a blog introduction; explain what Wickhold Evenburn reports and what it does not do, with Wickhold Quenchline as supporting context. Keep the article informative rather than framing the campaign as a new announcement.",
+      "angle": "A practical distinction between a vendor’s documented status, a team’s own audit preparation, and the product’s specific role in reporting drift and exposure paths.",
+      "hook": "Wickhold is pursuing FedRAMP Moderate authorization. The median time to contain a runtime incident is 7.4 hours [Wickhold Containment Report, 2026, https://wickhold.example/containment-report].",
+      "cta": "Book a demo",
+      "timing": "Proposed publication: February 17, 2027."
+    },
+    {
+      "id": "LI-01",
+      "format": "linkedin",
+      "audience": "Security leaders at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Introduce the campaign’s approved FedRAMP status wording, include SOC 2 Type II renewed January 2026 as supporting information, and direct readers to the campaign page’s demo action. Keep the post to one point and one link.",
+      "angle": "A restrained trust-status post that states the verified wording without turning in-process authorization into a claim of authorization.",
+      "hook": "Wickhold is pursuing FedRAMP Moderate authorization.",
+      "cta": "Book a demo",
+      "timing": "Proposed publication: February 16, 2027."
+    },
+    {
+      "id": "LI-02",
+      "format": "linkedin",
+      "audience": "Security leaders at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Feature the approved Ostler Grocers result—63% fewer open critical misconfigurations in 90 days across 1,900 nodes—then describe Wickhold Evenburn’s reporting role without attributing an unsupported cause to the outcome. Direct readers to the campaign page.",
+      "angle": "A named, approved customer result paired with a precise description of the product’s fix-order function, without a quote or generalized promise.",
+      "hook": "Ostler Grocers had 63% fewer open critical misconfigurations in 90 days, across 1,900 nodes.",
+      "cta": "Book a demo",
+      "timing": "Proposed publication: March 2, 2027."
+    },
+    {
+      "id": "LI-03",
+      "format": "linkedin",
+      "audience": "Security leaders at healthcare organizations and at companies selling into the public sector.",
+      "purpose": "Explain how Wickhold Evenburn reports drift, exposure paths, and a fix order, while making clear that the product does not change the customer’s environment by itself. Mention Wickhold Quenchline only as supporting runtime containment and link to the campaign page.",
+      "angle": "A clear product-function post that sets expectations about what Evenburn reports and what remains the team’s decision.",
+      "hook": "Wickhold Evenburn reports drift, exposure paths, and a fix order; your team decides what to change.",
+      "cta": "Book a demo",
+      "timing": "Proposed publication: March 16, 2027."
+    }
+  ]
+}
+
+REQUEST 11 92a48e99-a099-4e47-b833-09405881b985 campaign_plan_verification gpt-6-luna 73178 tokens cache=0 duration=48805
+{"reviewed_asset_ids":["LP-01","EM-01","BA-01","LI-01","LI-02","LI-03"],"defects":[{"asset_id":"EM-01","field":"purpose","explanation":"Connecting the Ostler result to audit preparation could imply that the result measures or demonstrates an audit-preparation benefit. Keep the result tied to its approved measure—fewer open critical misconfigurations—and avoid implying an audit-preparation outcome.","kind":"content","rule_refs":["1c8464bd-edcd-4e17-81cd-317c32433282"]},{"asset_id":"BA-01","field":"hook","explanation":"The planned opening gives the required market statistic, but does not specify the required sentence explaining why the post exists after it. Also include the survey base near the first figure in this long-form post: a survey of 412 platform and security leaders.","kind":"content","rule_refs":["9792dec6-922e-42ef-aded-9a7b0bc70f03","2ed35bac-e511-4a05-b03f-f56a94ab438a"]}]}
+
+REQUEST 12 5ea347bc-c5c1-4272-b4ff-8aa843806260 campaign_plan_coverage_repair gpt-6-luna 21785 tokens cache=0 duration=6563
+{"patches":[{"asset_id":"EM-01","field":"purpose","replacement":"Send a concise, phone-readable email that leads with the approved FedRAMP wording and SOC 2 Type II status, then states the Ostler Grocers result only as 63% fewer open critical misconfigurations in 90 days across 1,900 nodes. Position Wickhold Evenburn as the focus and Wickhold Quenchline as supporting detail, without implying an audit-preparation outcome or that new customers should expect the same result."},{"asset_id":"BA-01","field":"hook","replacement":"Wickhold is pursuing FedRAMP Moderate authorization. The median time to contain a runtime incident is 7.4 hours [Wickhold Containment Report, 2026, https://wickhold.example/containment-report], from a survey of 412 platform and security leaders. This post explains how regulated security teams can assess vendor status and organize posture work."}]}
+
+REQUEST 13 632533c4-add2-449f-9ea3-508395b8c1e8 campaign_plan_verification gpt-6-luna 20332 tokens cache=0 duration=24321
+{"reviewed_asset_ids":["EM-01","BA-01","LP-01","LI-01","LI-02","LI-03"],"defects":[{"asset_id":"BA-01","field":"hook","explanation":"The citation is followed by a comma rather than the required sentence-ending period outside the bracket. End the statistic sentence after the citation, then place the survey-base detail in a nearby sentence so both the citation form and survey-base requirement are preserved.","kind":"content","rule_refs":["2ed35bac-e511-4a05-b03f-f56a94ab438a","9792dec6-922e-42ef-aded-9a7b0bc70f03"]}]}
+
+REQUEST 14 85a5c68e-3fd7-4003-b094-5eabdab97cb1 campaign_plan_verification gpt-6-luna 20375 tokens cache=16089 duration=15636
+{"reviewed_asset_ids":["EM-01","BA-01"],"defects":[]}
+
+REQUEST 15 5cfae818-6eaf-4237-accc-df08a75852fa route_asset_context gpt-6-luna 59192 tokens cache=0 duration=36826
+{
+  "assets": [
+    {
+      "asset_id": "LP-01",
+      "writing": [
+        "s257",
+        "s57",
+        "s48",
+        "s179",
+        "s155",
+        "s191",
+        "s64",
+        "s49",
+        "s5",
+        "s30",
+        "s80",
+        "s19",
+        "s251",
+        "s92",
+        "s56",
+        "s180",
+        "s127"
+      ],
+      "validation": [
+        "s45",
+        "s78",
+        "s240",
+        "s64",
+        "s49",
+        "s5",
+        "s30",
+        "s80",
+        "s19",
+        "s251",
+        "s48",
+        "s191"
+      ],
+      "image": [
+        "s24",
+        "s115",
+        "s131",
+        "s234",
+        "s146",
+        "s137",
+        "s118",
+        "s36"
+      ],
+      "production_dependencies": [
+        "Establish the campaign landing-page URL before publishing or linking to it.",
+        "Verify FedRAMP status and the exact approved wording immediately before publication; the supplied status sheet was last checked October 2, 2026.",
+        "Confirm the campaign page links to the approved Ostler Grocers case study when using its result.",
+        "Select and verify a library image, including its current rights, restrictions, metadata, and suitability for the landing-page placement."
+      ]
+    },
+    {
+      "asset_id": "EM-01",
+      "writing": [
+        "s98",
+        "s99",
+        "s141",
+        "s138",
+        "s167",
+        "s71",
+        "s191",
+        "s104",
+        "s64",
+        "s49",
+        "s30",
+        "s80",
+        "s19",
+        "s5",
+        "s251",
+        "s56"
+      ],
+      "validation": [
+        "s79",
+        "s64",
+        "s49",
+        "s30",
+        "s80",
+        "s19",
+        "s5",
+        "s251",
+        "s99",
+        "s138",
+        "s191"
+      ],
+      "image": [],
+      "production_dependencies": [
+        "Establish the campaign landing-page URL for the primary CTA.",
+        "Verify FedRAMP status and the exact approved wording immediately before the send; the supplied status sheet was last checked October 2, 2026.",
+        "Confirm the security-leadership audience list is appropriate for the send and apply required suppressions.",
+        "Confirm the campaign page links to the approved Ostler Grocers case study when using its result."
+      ]
+    },
+    {
+      "asset_id": "BA-01",
+      "writing": [
+        "s69",
+        "s46",
+        "s147",
+        "s47",
+        "s189",
+        "s202",
+        "s64",
+        "s49",
+        "s5",
+        "s30",
+        "s80",
+        "s19",
+        "s251",
+        "s92",
+        "s107",
+        "s59",
+        "s191",
+        "s56",
+        "s180"
+      ],
+      "validation": [
+        "s42",
+        "s78",
+        "s45",
+        "s64",
+        "s49",
+        "s189",
+        "s47",
+        "s5",
+        "s30",
+        "s80",
+        "s19",
+        "s251",
+        "s46",
+        "s147",
+        "s191"
+      ],
+      "image": [
+        "s24",
+        "s115",
+        "s131",
+        "s234",
+        "s146",
+        "s153",
+        "s11",
+        "s106",
+        "s140",
+        "s208",
+        "s119"
+      ],
+      "production_dependencies": [
+        "Confirm Kofi Anselm as the real-person byline and obtain his review of the final article.",
+        "Verify FedRAMP status and the exact approved wording immediately before publication; the supplied status sheet was last checked October 2, 2026.",
+        "The Containment Report 2026 statistic is usable through April 14, 2027; recheck publication timing if the article is delayed beyond that date.",
+        "Establish the campaign-page URL. Confirm the approved Ostler Grocers case-study link if the article uses the customer result.",
+        "Select and verify a blog-hero library image, including its current rights, restrictions, metadata, and placement suitability."
+      ]
+    },
+    {
+      "asset_id": "LI-01",
+      "writing": [
+        "s7",
+        "s230",
+        "s67",
+        "s191",
+        "s27",
+        "s104",
+        "s64",
+        "s49",
+        "s56",
+        "s180"
+      ],
+      "validation": [
+        "s173",
+        "s78",
+        "s64",
+        "s49",
+        "s230",
+        "s191"
+      ],
+      "image": [
+        "s24",
+        "s115",
+        "s131",
+        "s234",
+        "s146",
+        "s39",
+        "s77",
+        "s258",
+        "s262"
+      ],
+      "production_dependencies": [
+        "Establish the campaign-page URL for the post’s single link.",
+        "Verify FedRAMP status and the exact approved wording immediately before publication; the supplied status sheet was last checked October 2, 2026.",
+        "Select and verify a LinkedIn image, including current rights, restrictions, metadata, and the required 1200x627 export."
+      ]
+    },
+    {
+      "asset_id": "LI-02",
+      "writing": [
+        "s7",
+        "s230",
+        "s67",
+        "s191",
+        "s27",
+        "s104",
+        "s19",
+        "s30",
+        "s80",
+        "s47",
+        "s5",
+        "s56",
+        "s180"
+      ],
+      "validation": [
+        "s173",
+        "s78",
+        "s19",
+        "s30",
+        "s80",
+        "s47",
+        "s5",
+        "s230",
+        "s191"
+      ],
+      "image": [
+        "s24",
+        "s115",
+        "s131",
+        "s234",
+        "s146",
+        "s39",
+        "s77",
+        "s258",
+        "s262"
+      ],
+      "production_dependencies": [
+        "Establish the campaign-page URL for the post’s single link; ensure the page links to the approved Ostler Grocers case study when using the result.",
+        "Select and verify a LinkedIn image, including current rights, restrictions, metadata, and the required 1200x627 export."
+      ]
+    },
+    {
+      "asset_id": "LI-03",
+      "writing": [
+        "s7",
+        "s230",
+        "s67",
+        "s191",
+        "s27",
+        "s104",
+        "s5",
+        "s50",
+        "s92",
+        "s56",
+        "s180"
+      ],
+      "validation": [
+        "s173",
+        "s78",
+        "s5",
+        "s50",
+        "s92",
+        "s230",
+        "s191"
+      ],
+      "image": [
+        "s24",
+        "s115",
+        "s131",
+        "s234",
+        "s146",
+        "s39",
+        "s77",
+        "s258",
+        "s262"
+      ],
+      "production_dependencies": [
+        "Establish the campaign-page URL for the post’s single link.",
+        "Select and verify a LinkedIn image, including current rights, restrictions, metadata, and the required 1200x627 export."
+      ]
+    }
+  ]
+}
+
+REQUEST 16 2561572a-28f2-4a81-aa07-5c459f8e2078 generate_campaign_asset gpt-6-luna 10713 tokens cache=1234 duration=24930
+{"title":"Assess vendor status and organize posture work","subject":null,"preheader":null,"sender_name":null,"byline":null,"body":"Wickhold is pursuing FedRAMP Moderate authorization. The median time to contain a runtime incident is 7.4 hours [Wickhold Containment Report, 2026, https://wickhold.example/containment-report]. This post explains how regulated security teams can assess vendor status and organize posture work. The report surveyed 412 platform and security leaders.\n\n## Separate a vendor’s status from your own readiness\n\nA vendor’s documented status and your organization’s audit preparation answer different questions. Start by asking what the vendor holds or is pursuing, which service or product the statement covers, and what documentation the vendor can provide. Record the answer in the vendor review rather than translating it into a broader conclusion.\n\nWickhold holds SOC 2 Type II, renewed January 2026. Wickhold is pursuing FedRAMP Moderate authorization. These are two distinct statements. Neither, on its own, establishes that a customer’s environment meets an audit requirement or that a particular deployment fits a customer’s needs.\n\nFor a review, keep the wording and evidence together. Note the date you checked the status, who confirmed it, and which service or scope the evidence describes. If a status is still in process, record that accurately. Don’t turn a plan, conversation, or pending step into a completed authorization. If the vendor provides a report under agreed access terms, note where your team stores it and who can review it.\n\nThen make the internal decision explicit: what evidence does your organization need before it approves the vendor, and who owns that decision? Security, procurement, legal, and the service owner may need different details. A short record of the question, evidence, owner, and next step gives the review a clear path without implying that the vendor’s status completes your work.\n\n## Keep audit preparation in your own workflow\n\nYour team controls its own preparation. Begin with the systems, owners, and evidence your review actually covers. A useful working record can include the system or service, the relevant control or requirement, the evidence location, its owner, and the next review date. Keep gaps visible rather than smoothing them into a general status like “ready.”\n\nFor each finding, assign a person to assess it and a next action. Some findings need investigation. Others need a change, a documented exception, or a decision from the control owner. Record what the team chose and why. A report can help people see what to examine, but your team still decides how to address a finding and what evidence supports that decision.\n\nThis distinction matters when several teams share responsibility. A security leader may own the review process; a platform engineer may understand the affected workload; and an application owner may know the operational impact of a change. Give each person a defined part of the work. Agree on how the team will track decisions and when it will revisit open items.\n\nTreat the record as a working tool, not a promise about an audit outcome. The usefulness of the process depends on your organization’s scope, evidence, and decisions. A clear list of owners and next actions can make posture work easier to coordinate without claiming that a vendor or a product makes the organization audit-ready.\n\n## Use posture reporting to decide what to investigate\n\nWickhold Evenburn reports drift, exposure paths, and a fix order. That gives a team information to review and prioritize. It does not change a customer’s environment by itself. Engineers and security owners still need to assess the reported issue, decide what action fits their environment, and make or approve that change.\n\nA practical review starts with the report, not an assumption about what the product has done. Confirm what the finding describes and which workload or configuration it concerns. Check the path and the surrounding context. Then decide whether the suggested order fits your team’s risk, ownership, and current work. If it does not, record the reason and the decision-maker rather than treating the order as an automatic instruction.\n\nThat process can connect posture work to an existing review queue. Assign an owner, note what evidence the owner needs, and track the decision and follow-up. If the team accepts a fix, it can manage that change through its normal workflow. If it defers the work, record who accepted the risk and when the team will review it again. The report helps inform the decision; it does not make the decision for you.\n\n## Keep containment separate from posture work\n\nWickhold Quenchline provides supporting context for runtime containment, which is different from Evenburn’s reporting role. Quenchline takes a containment action only in contain mode. In observe mode, it records what it would have done. Its actions are isolating a pod’s network, freezing a process, and draining a node.\n\nThat distinction helps teams assess what they are evaluating. Evenburn reports drift and exposure paths; it does not contain anything. Quenchline can take the listed containment actions in contain mode; it does not patch the image an application came from. Keep those functions separate in a review, and ask which workflow, operating mode, and team decision apply to the task in front of you.\n\n## Set the next step before the review ends\n\nOn Monday, choose one vendor review or posture queue to examine. Write down the question the team needs to answer, the evidence it will check, and the person responsible for the next action. Keep the vendor’s documented status separate from your organization’s audit preparation, and use posture reports as input to your team’s decisions.\n\nBook a demo.","source_ids":["412b98db-a59b-4fa4-afb4-aada12ba8243","33d10c5d-c881-4d79-95fa-1edc60d3c984","9792dec6-922e-42ef-aded-9a7b0bc70f03","2ed35bac-e511-4a05-b03f-f56a94ab438a","06ede73b-42e2-4a1d-8774-10eb6d36ca3a","5b924c2e-d5ac-458e-9271-f95a845d565a","6fabfd1d-c817-4def-a0d5-bc9821112094","383000ed-25fc-4fa8-8a32-0a9cb7da5f80","c1483026-3308-4a52-8cf9-e6314d11b35f"]}
+
+REQUEST 17 35ae96cf-708d-4eaa-b286-9d41d477427a generate_campaign_asset gpt-6-luna 9567 tokens cache=1234 duration=11213
+{"title":"Regulated teams: Wickhold trust-and-proof email","subject":"Wickhold's security status","preheader":"SOC 2 Type II, renewed January 2026, and an approved customer result.","sender_name":"Wickhold","byline":null,"body":"Wickhold is pursuing FedRAMP Moderate authorization. Wickhold holds SOC 2 Type II, renewed January 2026.\n\nOstler Grocers had 63% fewer open critical misconfigurations in 90 days across 1,900 nodes. That is one customer’s result, not a forecast.\n\nWickhold Evenburn reports drift, exposure paths and a fix order. Wickhold Quenchline supports runtime containment. In contain mode, it can isolate a pod’s network, freeze a process or drain a node.\n\nBook a demo\n\nWickhold","source_ids":["412b98db-a59b-4fa4-afb4-aada12ba8243","33d10c5d-c881-4d79-95fa-1edc60d3c984","1475f7bc-8d87-4eb3-9fc9-4dece12a6a55","1c8464bd-edcd-4e17-81cd-317c32433282","06ede73b-42e2-4a1d-8774-10eb6d36ca3a","60fd8029-020c-42ea-8ffa-c11621d95fe2","8e229f98-1ea5-4a28-8b10-5f4b455449ff","ca65b949-2e3b-43fc-b1a9-0f6770fb82d8","459b9ef8-bddf-4cff-908d-53322e51e731"]}
+
+REQUEST 18 3e04b3b9-9f0f-467b-bd13-1a8b9dd2d383 generate_campaign_asset gpt-6-luna 9865 tokens cache=0 duration=16610
+{"title":"Wickhold is pursuing FedRAMP Moderate authorization.","subject":null,"preheader":null,"sender_name":null,"byline":null,"body":"Wickhold holds SOC 2 Type II, renewed January 2026.\n\nWickhold Evenburn reports drift, exposure paths, and a fix order for security leaders at healthcare organizations and companies selling into the public sector.\n\nBook a demo\n\n## See what needs attention\n\nEvenburn helps your team see where configuration has drifted, trace exposure paths, and prioritize fixes. It reports what it finds; it does not change your environment by itself.\n\n## Customer result\n\nOstler Grocers had 63% fewer open critical misconfigurations in 90 days across 1,900 nodes.\n\n## Supporting runtime containment\n\nWickhold Quenchline supports runtime containment.\n\nBook a demo","source_ids":["333c68ed-7bd9-491d-9020-93f7cb39c911","a1cb5f0e-a0a0-4e46-9bcf-3ae99202023b","06ede73b-42e2-4a1d-8774-10eb6d36ca3a","1475f7bc-8d87-4eb3-9fc9-4dece12a6a55","1c8464bd-edcd-4e17-81cd-317c32433282","412b98db-a59b-4fa4-afb4-aada12ba8243"]}
+
+REQUEST 19 e604aacc-e265-407d-8867-088dcd59852b campaign_asset_validation gpt-6-luna 15879 tokens cache=0 duration=14901
+{"findings":[{"scope":"production","draft_quote":"Book a demo","rule_chunk_id":"9444a373-5e1b-44c8-b229-396932ea45d4","rule_quote":"One button or link. Then the sign-off.","correction":"Attach a verified demo-booking destination to the CTA before sending; no destination URL is supplied.","source_span":"9444a373-5e1b-44c8-b229-396932ea45d4:2","dependency_kind":"destination_url"},{"scope":"production","draft_quote":"","rule_chunk_id":"459b9ef8-bddf-4cff-908d-53322e51e731","rule_quote":"Footer carries the legal entity, Wickhold, Inc., a Denver postal address and the unsubscribe link.","correction":"Add the approved footer with Wickhold, Inc., a Denver postal address, and an unsubscribe link.","source_span":"459b9ef8-bddf-4cff-908d-53322e51e731:1","dependency_kind":"missing_evidence"}]}
+
+REQUEST 20 28a63d87-1930-452e-9113-ee4039a8c023 campaign_asset_validation gpt-6-luna 17475 tokens cache=0 duration=28337
+{"findings":[{"scope":"production","draft_quote":"","rule_chunk_id":"c1079d42-ff19-496b-9bbf-e72c382dc03d","rule_quote":"Customer proof: one result, one quote","correction":"Provide the signed, approved Ostler Grocers quote text and attribution for the customer-proof section. The supplied evidence does not include the quote itself; do not invent or reconstruct it.","source_span":"c1079d42-ff19-496b-9bbf-e72c382dc03d:1","dependency_kind":"missing_evidence"},{"scope":"production","draft_quote":"Book a demo","rule_chunk_id":"ca65b949-2e3b-43fc-b1a9-0f6770fb82d8","rule_quote":"A CTA, the call to action on a button or a link","correction":"Provide the destination URL for the demo-request CTA and attach it to both placements.","source_span":"ca65b949-2e3b-43fc-b1a9-0f6770fb82d8:1","dependency_kind":"destination_url"}]}
+
+REQUEST 21 620ff143-724e-4535-92a3-e71fc18ff711 campaign_asset_validation gpt-6-luna 21808 tokens cache=0 duration=14326
+{"findings":[{"scope":"text","draft_quote":"","rule_chunk_id":"2dfe4ee1-b5b7-475f-aa8a-47e4ee921cb3","rule_quote":"Blog posts run 900 to 1,400 words.","correction":"Expand the body by at least 3 words to meet the 900-word minimum.","source_span":"2dfe4ee1-b5b7-475f-aa8a-47e4ee921cb3:1","dependency_kind":null},{"scope":"production","draft_quote":"Book a demo.","rule_chunk_id":"6fabfd1d-c817-4def-a0d5-bc9821112094","rule_quote":"End on the practical next step, then one call to action to the most relevant page.","correction":"Provide and attach the destination URL for the most relevant demo page.","source_span":"6fabfd1d-c817-4def-a0d5-bc9821112094:6","dependency_kind":"destination_url"}]}
+
+REQUEST 22 8033a1bb-c222-4af5-80ce-1907cb0c5488 generate_campaign_asset gpt-6-luna 7314 tokens cache=1234 duration=11826
+{"title":"Wickhold is pursuing FedRAMP Moderate authorization.","subject":null,"preheader":null,"sender_name":null,"byline":null,"body":"Wickhold is pursuing FedRAMP Moderate authorization.\n\nWickhold holds SOC 2 Type II, renewed January 2026.\n\nClear status matters when security leaders assess vendors.\n\nBook a demo on the campaign page.","source_ids":["41f8d6b1-1744-475c-b7dd-9cafc7d5a3e6","e4d55076-3313-4cf2-a4af-45a0ab945f2f","33d10c5d-c881-4d79-95fa-1edc60d3c984","412b98db-a59b-4fa4-afb4-aada12ba8243","383000ed-25fc-4fa8-8a32-0a9cb7da5f80"]}
+
+REQUEST 23 3ed89a8c-cdff-4804-a3c8-bd544d9f4de0 campaign_asset_validation gpt-6-luna 12659 tokens cache=0 duration=19892
+{"findings":[{"scope":"text","draft_quote":"Book a demo on the campaign page.","rule_chunk_id":"ca65b949-2e3b-43fc-b1a9-0f6770fb82d8","rule_quote":"A CTA, the call to action on a button or a link, is at most four words, and it starts with a verb.","correction":"Use “Book a demo” as the CTA text; keep it as the linked CTA on the post’s final line.","source_span":"ca65b949-2e3b-43fc-b1a9-0f6770fb82d8:2","dependency_kind":null},{"scope":"production","draft_quote":"","rule_chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","rule_quote":"One link per post, at the end, on its own line.","correction":"Provide the campaign page’s demo destination URL and place one link to it on the final line.","source_span":"e4d55076-3313-4cf2-a4af-45a0ab945f2f:1","dependency_kind":"destination_url"},{"scope":"production","draft_quote":"","rule_chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","rule_quote":"Every company page post gets one image, except short hiring notes.","correction":"Provide an image for this company page post and confirm its approved placement and metadata.","source_span":"e4d55076-3313-4cf2-a4af-45a0ab945f2f:1","dependency_kind":"image_attachment"},{"scope":"production","draft_quote":"Wickhold is pursuing FedRAMP Moderate authorization.","rule_chunk_id":"4efa700b-1645-41eb-89bc-1d8aeb1b7fb2","rule_quote":"Anything with a new claim, statistic, customer name or certification mention | Legal, before design starts","correction":"Obtain Legal review before design; retain the exact approved FedRAMP wording.","source_span":"4efa700b-1645-41eb-89bc-1d8aeb1b7fb2:2","dependency_kind":"permission"}]}
+
+REQUEST 24 28b587ea-de8a-4cb9-887d-cb68602f684f campaign_asset_repair gpt-6-luna 5285 tokens cache=0 duration=22777
+{"content_hash":"f3ad1cec967164de458b77a5f80241a2fc2684a25d02d9621a3228dec9227748","patches":[{"field":"body","start":294,"end":294,"original":"","replacement":" with clear ownership"}]}
+
+REQUEST 25 12f7eeeb-e7c9-4b52-9811-d7548e9a2235 generate_campaign_asset gpt-6-luna 7840 tokens cache=1983 duration=11982
+{"title":"","subject":null,"preheader":null,"sender_name":null,"byline":null,"body":"Ostler Grocers had 63% fewer open critical misconfigurations in 90 days across 1,900 nodes.\n\nWickhold Evenburn reports drift, exposure paths, and a fix order. It does not change a customer’s environment by itself.\n\nSee the campaign page to book a demo.","source_ids":["1c8464bd-edcd-4e17-81cd-317c32433282","1475f7bc-8d87-4eb3-9fc9-4dece12a6a55","06ede73b-42e2-4a1d-8774-10eb6d36ca3a","e4d55076-3313-4cf2-a4af-45a0ab945f2f"]}
+
+REQUEST 26 1e2b6443-4bea-46d7-a954-2a922e4822c8 campaign_asset_validation gpt-6-luna 13564 tokens cache=0 duration=18989
+{"findings":[{"scope":"text","draft_quote":"See the campaign page to book a demo.","rule_chunk_id":"ca65b949-2e3b-43fc-b1a9-0f6770fb82d8","rule_quote":"A CTA, the call to action on a button or a link, is at most four words, and it starts with a verb.","correction":"Use “Book a demo” as the CTA text.","source_span":"ca65b949-2e3b-43fc-b1a9-0f6770fb82d8:2","dependency_kind":null},{"scope":"production","draft_quote":"See the campaign page","rule_chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","rule_quote":"One link per post, at the end, on its own line.","correction":"Provide the campaign-page URL and place it as the post’s single link on its own final line.","source_span":"e4d55076-3313-4cf2-a4af-45a0ab945f2f:1","dependency_kind":"destination_url"},{"scope":"production","draft_quote":"","rule_chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","rule_quote":"Every company page post gets one image, except short hiring notes.","correction":"Attach one approved image to the company-page post.","source_span":"e4d55076-3313-4cf2-a4af-45a0ab945f2f:1","dependency_kind":"image_attachment"},{"scope":"production","draft_quote":"Ostler Grocers had 63% fewer open critical misconfigurations in 90 days across 1,900 nodes.","rule_chunk_id":"2ed35bac-e511-4a05-b03f-f56a94ab438a","rule_quote":"Customer results don't take a bracket when the customer is named in the sentence and the case study is linked from the page.","correction":"Confirm that the campaign page links to Ostler’s approved case study before publication.","source_span":"2ed35bac-e511-4a05-b03f-f56a94ab438a:6","dependency_kind":"missing_evidence"}]}
+
+REQUEST 27 0b3461b4-074f-40a0-a39c-dc3a31570233 campaign_asset_repair gpt-6-luna 3004 tokens cache=0 duration=6848
+{"content_hash":"7f67b82e8fb265a4c415d57ef08383cf308cf4e0d45b56881d187b1e8083ff4b","patches":[{"field":"body","start":147,"end":178,"original":"Book a demo on the campaign page.","replacement":"Book a demo"}]}
+
+REQUEST 28 d7f2c42b-05f0-47ab-bf34-4e2c25ac640b campaign_asset_validation gpt-6-luna 21812 tokens cache=3807 duration=44584
+{"findings":[{"scope":"text","draft_quote":"with clear ownershipThe report surveyed 412 platform and security leaders.","rule_chunk_id":"9792dec6-922e-42ef-aded-9a7b0bc70f03","rule_quote":"follow it with one sentence that says why this post exists.","correction":"Delete the stray fragment “with clear ownership” and make the survey-base statement a separate, complete sentence: “The report surveyed 412 platform and security leaders.”","source_span":"9792dec6-922e-42ef-aded-9a7b0bc70f03:1","dependency_kind":null},{"scope":"text","draft_quote":"This distinction matters when several teams share responsibility.","rule_chunk_id":"2dfe4ee1-b5b7-475f-aa8a-47e4ee921cb3","rule_quote":"Blog posts run 900 to 1,400 words.","correction":"The body is 899 words. Expand the article with relevant, substantive copy so it reaches at least 900 words.","source_span":"2dfe4ee1-b5b7-475f-aa8a-47e4ee921cb3:1","dependency_kind":null},{"scope":"production","draft_quote":"Book a demo.","rule_chunk_id":"6fabfd1d-c817-4def-a0d5-bc9821112094","rule_quote":"End on the practical next step, then one call to action to the most relevant page.","correction":"Provide and attach the URL for the most relevant demo page; the destination is not supplied.","source_span":"6fabfd1d-c817-4def-a0d5-bc9821112094:6","dependency_kind":"destination_url"},{"scope":"production","draft_quote":"Wickhold Evenburn reports drift, exposure paths, and a fix order.","rule_chunk_id":"26f9f996-cd6d-4ef6-b3b8-972d1bd0c6c0","rule_quote":"Technical read | An engineer who did not write it | Draft complete","correction":"Have an engineer who did not write the post complete the required technical read before publication; completion is not confirmed.","source_span":"26f9f996-cd6d-4ef6-b3b8-972d1bd0c6c0:1","dependency_kind":"missing_evidence"},{"scope":"production","draft_quote":"Wickhold is pursuing FedRAMP Moderate authorization.","rule_chunk_id":"26f9f996-cd6d-4ef6-b3b8-972d1bd0c6c0","rule_quote":"Claims check | Priit, for any customer, certification or number, except third-party statistics under section 5 of the approved claims | As the approved claims set out","correction":"Obtain the required claims check from Priit for the certification claim and number; completion is not confirmed.","source_span":"26f9f996-cd6d-4ef6-b3b8-972d1bd0c6c0:1","dependency_kind":"missing_evidence"}]}
+
+REQUEST 29 c76818bf-9c04-4b9c-a242-a4c14cb91816 campaign_asset_validation gpt-6-luna 12645 tokens cache=2450 duration=10366
+{"findings":[{"scope":"production","draft_quote":"Book a demo","rule_chunk_id":"41f8d6b1-1744-475c-b7dd-9cafc7d5a3e6","rule_quote":"One link per post, at the end, on its own line.","correction":"Provide the campaign page URL and link “Book a demo” to it as the post’s sole link on the final standalone line.","source_span":"41f8d6b1-1744-475c-b7dd-9cafc7d5a3e6:2","dependency_kind":"destination_url"},{"scope":"production","draft_quote":"","rule_chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","rule_quote":"Every company page post gets one image, except short hiring notes.","correction":"Provide an approved image for the company-page post and confirm its placement.","source_span":"e4d55076-3313-4cf2-a4af-45a0ab945f2f:1","dependency_kind":"image_attachment"}]}
+
+REQUEST 30 8aa0a6a5-5bb2-457e-b76c-87d5840dcbf8 generate_campaign_asset gpt-6-luna 6680 tokens cache=1983 duration=10236
+{"title":"","subject":null,"preheader":null,"sender_name":null,"byline":null,"body":"Wickhold Evenburn reports drift, exposure paths, and a fix order. Your team decides what to change.\n\nEvenburn does not change your environment by itself. Wickhold Quenchline supports runtime containment in contain mode: it can isolate a pod’s network, freeze a process, or drain a node.\n\nBook a demo on the campaign page.","source_ids":["06ede73b-42e2-4a1d-8774-10eb6d36ca3a","3410ca50-9f2f-46c3-90e9-d1ff5cff3651","e4d55076-3313-4cf2-a4af-45a0ab945f2f"]}
+
+REQUEST 31 a06b3ac5-1e18-457c-b606-dd790a119c5e campaign_asset_repair gpt-6-luna 2985 tokens cache=0 duration=9169
+{"content_hash":"fb98d9d41518a6345ebbf4282cf3cb154c37578f5f2f9fa5dfc4bb3da4611002","patches":[{"field":"body","start":216,"end":253,"original":"See the campaign page to book a demo.","replacement":"Book a demo."}]}
+
+REQUEST 32 1c81eb18-7282-462e-9d86-a35c4b3cff69 campaign_asset_validation gpt-6-luna 13549 tokens cache=2610 duration=24859
+{"findings":[{"scope":"production","draft_quote":"","rule_chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","rule_quote":"One link per post, at the end, on its own line.","correction":"Provide the campaign-page URL and place it as the post’s single link at the end, with “Book a demo” as the link text.","source_span":"e4d55076-3313-4cf2-a4af-45a0ab945f2f:1","dependency_kind":"destination_url"},{"scope":"production","draft_quote":"Ostler Grocers had 63% fewer open critical misconfigurations in 90 days across 1,900 nodes.","rule_chunk_id":"2ed35bac-e511-4a05-b03f-f56a94ab438a","rule_quote":"Customer results don't take a bracket when the customer is named in the sentence and the case study is linked from the page.","correction":"Confirm that the campaign page links to the approved Ostler case study. If it does not, provide the approved case-study URL and resolve how to meet the citation and one-link-per-post requirements together.","source_span":"2ed35bac-e511-4a05-b03f-f56a94ab438a:6","dependency_kind":"missing_evidence"},{"scope":"production","draft_quote":"","rule_chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","rule_quote":"Every company page post gets one image, except short hiring notes.","correction":"Attach the selected image and provide its required metadata and placement for this company-page post.","source_span":"e4d55076-3313-4cf2-a4af-45a0ab945f2f:1","dependency_kind":"image_attachment"}]}
+
+REQUEST 33 0c83b1de-8bc3-42ed-aa15-049afa366065 campaign_asset_validation gpt-6-luna 11660 tokens cache=0 duration=11386
+{"findings":[{"scope":"text","draft_quote":"Book a demo on the campaign page.","rule_chunk_id":"ca65b949-2e3b-43fc-b1a9-0f6770fb82d8","rule_quote":"A CTA, the call to action on a button or a link, is at most four words, and it starts with a verb.","correction":"Use “Book a demo” as the CTA text, alone on the final line.","source_span":"ca65b949-2e3b-43fc-b1a9-0f6770fb82d8:1","dependency_kind":null},{"scope":"production","draft_quote":"Book a demo on the campaign page.","rule_chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","rule_quote":"One link per post, at the end, on its own line.","correction":"Provide the campaign page destination URL so the CTA can link to it on the final line.","source_span":"e4d55076-3313-4cf2-a4af-45a0ab945f2f:1","dependency_kind":"destination_url"},{"scope":"production","draft_quote":"image_record: null","rule_chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","rule_quote":"Every company page post gets one image, except short hiring notes.","correction":"Attach an image for the company page post.","source_span":"e4d55076-3313-4cf2-a4af-45a0ab945f2f:1","dependency_kind":"image_attachment"}]}
+
+REQUEST 34 f7ce11d4-d48e-4856-99a9-d4bfa7940a04 campaign_asset_repair gpt-6-luna 2941 tokens cache=0 duration=9502
+{"content_hash":"1253b67230a86203b02c7bece9eb270811dbf5acfb21bd47242172bead1a5fb9","patches":[{"field":"body","start":270,"end":303,"original":"Book a demo on the campaign page.","replacement":"Book a demo"}]}
+
+REQUEST 35 b26dda81-3b3a-4eea-a216-c673b2301f9e campaign_asset_repair gpt-6-luna 5541 tokens cache=0 duration=39646
+{"content_hash":"47768fc739afb3c026403a852778fe2c8aa149220c7a2c28b19892211a6827da","patches":[{"field":"body","start":294,"end":370,"original":"  with clear ownershipThe report surveyed 412 platform and security leaders.","replacement":" The report surveyed 412 platform and security leaders. For security teams, the figure offers context, not an audit outcome."}]}
+
+REQUEST 36 de7cefdf-4d9c-49a7-8da4-b4a917653da6 campaign_asset_validation gpt-6-luna 11646 tokens cache=2308 duration=12692
+{"findings":[{"scope":"production","draft_quote":"Book a demo","rule_chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","rule_quote":"One link per post, at the end, on its own line.","correction":"Add the approved campaign page URL as the post’s single link at the end, with “Book a demo” as the short instruction before it. The URL is not supplied.","source_span":"e4d55076-3313-4cf2-a4af-45a0ab945f2f:1","dependency_kind":"destination_url"},{"scope":"production","draft_quote":"","rule_chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","rule_quote":"Every company page post gets one image, except short hiring notes.","correction":"Attach an approved image for the company post and confirm its metadata and placement.","source_span":"e4d55076-3313-4cf2-a4af-45a0ab945f2f:1","dependency_kind":"image_attachment"}]}
+
+REQUEST 37 dff5e3ad-c337-4623-8f2b-cae07f430a92 campaign_asset_validation gpt-6-luna 21812 tokens cache=3807 duration=20067
+{"findings":[{"scope":"production","draft_quote":"Book a demo.","rule_chunk_id":"6fabfd1d-c817-4def-a0d5-bc9821112094","rule_quote":"End on the practical next step, then one call to action to the most relevant page.","correction":"Provide the confirmed demo-booking destination and link the CTA to it.","source_span":"6fabfd1d-c817-4def-a0d5-bc9821112094:6","dependency_kind":"destination_url"},{"scope":"production","draft_quote":"Wickhold is pursuing FedRAMP Moderate authorization.","rule_chunk_id":"26f9f996-cd6d-4ef6-b3b8-972d1bd0c6c0","rule_quote":"Claims check | Priit, for any customer, certification or number, except third-party statistics under section 5 of the approved claims | As the approved claims set out","correction":"Complete the required claims check with Priit before publication; the draft includes a certification claim.","source_span":"26f9f996-cd6d-4ef6-b3b8-972d1bd0c6c0:1","dependency_kind":"missing_evidence"}]}
+
+REQUEST 38 9923c2b4-eba3-4332-91ae-d6a2199b03dd embed_image_queries text-embedding-3-small 8097 tokens cache=None duration=1566
+
+
+REQUEST 39 de82f460-54b3-4970-8394-01fe023f5e6f select_campaign_images gpt-6-luna 15063 tokens cache=0 duration=43683
+{"selections":[{"asset_id":"LP-01","image_id":"team-all-standup","alt_text":"Three Wickhold colleagues standing together for a morning team discussion in an open office.","reason":"A real working-room scene suits the trust-focused landing-page hero without suggesting that it shows a customer site."},{"asset_id":"EM-01","image_id":"team-noor-review","alt_text":"Two Wickhold colleagues reviewing printed layouts together at a table.","reason":"The image shows people engaged in work and supports the email’s trust-and-proof theme without presenting a customer as the subject."},{"asset_id":"BA-01","image_id":"office-rack-detail","alt_text":"A close view of a server rack with unlabeled cables and small green status lights.","reason":"The infrastructure detail fits the article’s technical posture-work subject and avoids a generic portrait or threatening imagery."},{"asset_id":"LI-01","image_id":"customer-ops-room","alt_text":"A few people seen from behind working at desks in a plain operations room, with monitors turned away.","reason":"The working-room photo supports a restrained vendor-status post without showing product UI or implying a customer result."},{"asset_id":"LI-02","image_id":"team-all-standup","alt_text":"Three Wickhold colleagues standing together for a morning team discussion in an open office.","reason":"A Wickhold team photo avoids implying that the image depicts Ostler Grocers or its site while accompanying the approved result."},{"asset_id":"LI-03","image_id":"office-hands-keyboard","alt_text":"An engineer’s hands on a laptop keyboard in a dim equipment room; the person’s face is out of frame.","reason":"The image depicts technical work and complements the product-function post without suggesting the product acts autonomously."}]}

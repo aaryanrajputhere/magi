@@ -1,7 +1,8 @@
 import MarkdownCopy from './MarkdownCopy';
+import ImageSkeleton from './ImageSkeleton';
 
-export default function EmailPreview({ brandName, subject, body, preheader, senderName, imageUrl, imageAlt }: {
-  preheader?: string | null; senderName?: string | null; brandName: string; subject: string | null; body: string; imageUrl?: string; imageAlt?: string;
+export default function EmailPreview({ brandName, subject, body, preheader, senderName, imageUrl, imageAlt, imagePending }: {
+  preheader?: string | null; senderName?: string | null; brandName: string; subject: string | null; body: string; imageUrl?: string; imageAlt?: string; imagePending?: boolean;
 }) {
   return <article className="email-preview" aria-label="Email preview">
     <header className="email-envelope">
@@ -15,6 +16,7 @@ export default function EmailPreview({ brandName, subject, body, preheader, send
     </header>
     <div className="email-message">
       {imageUrl && <img className="email-header-image" src={imageUrl} alt={imageAlt || ''} />}
+      {!imageUrl && imagePending && <ImageSkeleton />}
       <div className="email-copy"><MarkdownCopy body={body}/></div>
     </div>
     <footer className="email-reply-actions" aria-hidden="true"><span>↶ &nbsp; Reply</span><span>↪ &nbsp; Forward</span></footer>

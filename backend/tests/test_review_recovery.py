@@ -3,6 +3,7 @@ from itertools import combinations
 from types import SimpleNamespace
 
 import pytest
+from review_helpers import review_payload
 
 from app.brand import conflict_coverage as coverage
 from app.brand.retrieval import RetrievalError
@@ -39,7 +40,7 @@ def test_second_pass_budget_growth_recovers_without_truncating(monkeypatch):
         if request.operation == 'campaign_conflict_find':
             # The first pass fits; its output pushes the independent check over.
             monkeypatch.setattr(coverage, 'MAX_INPUT_TOKENS',
-                len(request.input + request.instructions + json.dumps(output_model.model_json_schema())) + 100)
+                len(json.dumps(request.input) + request.instructions + json.dumps(output_model.model_json_schema())) + 100)
         return SimpleNamespace(run_id=str(len(requests)), parsed=output_model.model_validate({
             'conflicts': [], 'limitations': ['Review context ' * 80] if len(requests) == 1 else [],
             'blocking_gaps': []}))
@@ -47,7 +48,7 @@ def test_second_pass_budget_growth_recovers_without_truncating(monkeypatch):
         SimpleNamespace(id='c', brand_id='b', data={}), [], passages)
     assert result['report']['status'] == 'ready'
     assert result['report']['source_count'] == 8
-    checks = [json.loads(r.input) for r in requests if r.operation == 'campaign_conflict_check']
+    checks = [review_payload(r) for r in requests if r.operation == 'campaign_conflict_check']
     assert len(checks) > 1
     assert {p['content'] for batch in checks for p in batch['passages']} == {p['content'] for p in passages}
 

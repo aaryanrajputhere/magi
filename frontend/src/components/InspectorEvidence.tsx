@@ -1,9 +1,10 @@
 type Data = Record<string, unknown>;
-export type Activity = {search_plans?:Data[];governing_evidence?:Data[];conflict_coverage?:Data;brief:string;state:string;trace:{name:string;status:string;error?:string}[];retrievals:Data[];selections:Data[]};
+export type Activity = {plan_review?:Data;planning_scope?:Data;search_plans?:Data[];governing_evidence?:Data[];conflict_coverage?:Data;brief:string;state:string;trace:{name:string;status:string;error?:string}[];retrievals:Data[];selections:Data[]};
 const object=(v:unknown):Data=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Data:{};
 const list=(v:unknown):Data[]=>Array.isArray(v)?v.map(object):[];
 const text=(v:unknown)=>v==null?'':String(v);
 export function parseInput(value:unknown):unknown {
+ if(Array.isArray(value)&&value.length>0&&value.every(part=>object(part).type==='input_text'&&typeof object(part).text==='string'))return parseInput(value.map(part=>text(object(part).text)).join('\n'));
  if(typeof value!=='string')return value;
  try{return JSON.parse(value);}catch{return value;}
 }
@@ -12,7 +13,7 @@ export function inputPreview(request:unknown):string {
  if(Array.isArray(input)) {
   for(const message of input) {
    const content=parseInput(object(message).content);const data=object(content);
-   if(data.request)return text(data.request);
+   if(data.request||data.instruction)return text(data.request||data.instruction);
    if(typeof content==='string')return content;
   }
  }

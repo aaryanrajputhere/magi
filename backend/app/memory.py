@@ -12,7 +12,6 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.db import Base, get_session
 
-
 MEMORY_GUIDANCE = (
     'Apply relevant brand_preferences as saved local style and workflow preferences. '
     'Explicit current campaign instructions and governing brand restrictions take precedence. '
@@ -132,7 +131,9 @@ def is_campaign_only(text):
     import re
     local = re.search(r"\b(?:for (?:this|the current) campaign only|(?:this|current) campaign only|just (?:this|the current) (?:campaign|post|asset)|for this (?:post|asset) only)\b", text, re.IGNORECASE)
     durable = re.search(r"\b(?:remember|forget|future campaigns|from now on|going forward)\b", text, re.IGNORECASE)
-    return bool(local and not durable)
+    lasting = re.search(r'\b(?:always|never|prefer|preference|usually|every campaign|all campaigns|brand voice)\b', text, re.IGNORECASE)
+    campaign_brief = re.search(r'\b(?:campaign brief|campaign direction|campaign team|campaign goal|this campaign|for this campaign)\b', text, re.IGNORECASE)
+    return bool(not durable and (local or (campaign_brief and not lasting)))
 
 
 def memory_request_only(text):

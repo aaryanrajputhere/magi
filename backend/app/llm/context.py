@@ -9,4 +9,5 @@ class RunContext(BaseModel):
     document_id: str | None = None
     campaign_id: str | None = None
     asset_id: str | None = None
+    prompt_metadata: dict[str, Any] = Field(default_factory=dict)
     source_references: list[dict[str, Any]] = Field(default_factory=list)

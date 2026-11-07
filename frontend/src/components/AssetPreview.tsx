@@ -2,6 +2,7 @@ import type { Draft } from './Draft';
 import MarkdownCopy from './MarkdownCopy';
 import { useEffect, useRef, useState } from 'react';
 import EmailPreview from './EmailPreview';
+import ImageSkeleton from './ImageSkeleton';
 
 function PostIcon({ name }: { name: 'like' | 'comment' | 'repost' | 'send' | 'globe' }) {
   const paths = {
@@ -22,9 +23,10 @@ function PostText({ text }: { text: string }) {
 
 type ImageRecord = {id: string; title: string; description: string};
 
-export default function AssetPreview({ drafts, brandName, generating, error, revisedAssetId, campaignId, version, onUpdate }: {
+export default function AssetPreview({ drafts, brandName, generating, rechecking, error, revisedAssetId, campaignId, version, onUpdate }: {
+  onRechecking?: (active: boolean) => void;
   campaignId?: string; version?: number; onUpdate?: (value: never) => void;
-  drafts: Draft[]; brandName: string; generating: boolean; error?: string | null; revisedAssetId?: string;
+  drafts: Draft[]; brandName: string; generating: boolean; rechecking?: boolean; error?: string | null; revisedAssetId?: string;
 }) {
   const [library, setLibrary] = useState<ImageRecord[] | null>(null);
   const [imageError, setImageError] = useState('');
@@ -39,6 +41,8 @@ export default function AssetPreview({ drafts, brandName, generating, error, rev
     if (revisedAssetId) setSelectedId(revisedAssetId);
   }, [revisedAssetId, revisionRunId]);
   const selected = drafts.find(d => d.asset_id === selectedId) ?? drafts.find(d => d.format === 'linkedin') ?? drafts[0];
+  const imagePending = generating && !rechecking && !error && !!selected && !selected.image
+    && ['linkedin', 'email', 'x', 'blog', 'landing_page'].includes(selected.format);
   const formatDrafts = drafts.filter(draft => draft.format === selected?.format);
   const selectedIndex = selected ? formatDrafts.indexOf(selected) : 0;
   const formats = [...new Set(drafts.map(draft => draft.format))];
@@ -88,7 +92,7 @@ export default function AssetPreview({ drafts, brandName, generating, error, rev
       </button>)}
     </nav>}
     {selected && <div className="preview-slide-heading"><div className="preview-slide-copy" aria-live="polite"><span>{selectedIndex + 1} of {formatDrafts.length} · {formatLabel(selected.format)}</span><h3>{selected.title}</h3></div><nav className="preview-heading-arrows" aria-label="Browse assets"><button disabled={formatDrafts.length < 2} onClick={() => goTo(selectedIndex - 1)} aria-label="Previous asset">‹</button><button disabled={formatDrafts.length < 2} onClick={() => goTo(selectedIndex + 1)} aria-label="Next asset">›</button></nav></div>}
-    {generating && <p role="status">Writing campaign drafts…</p>}
+    {generating && <p role="status">{rechecking ? "Rechecking saved drafts…" : "Writing campaign drafts…"}</p>}
     {error && <p role="alert">{error}</p>}
     <div ref={previewBody} className="preview-carousel" role="region" aria-roledescription="carousel" aria-label="Campaign assets" tabIndex={formatDrafts.length > 1 ? 0 : undefined}
       onKeyDown={event => {
@@ -120,13 +124,14 @@ export default function AssetPreview({ drafts, brandName, generating, error, rev
       </header>
       <div className="linkedin-body"><PostText text={visibleBody} />{collapsed && <button className="linkedin-more" onClick={() => setExpandedBody(selected.body)} aria-expanded={false}>…more</button>}{expanded && selected.body.length > 280 && <button className="linkedin-more linkedin-less" onClick={() => setExpandedBody(null)} aria-expanded={true}>Show less</button>}</div>
       {selected.image && <img className="linkedin-post-image" src={`/api/campaigns/${campaignId}/images/${encodeURIComponent(selected.image.image_id)}`} alt={selected.image.alt_text} />}
+      {imagePending && <ImageSkeleton />}
       <footer className="linkedin-actions" aria-hidden="true">{(['like', 'comment', 'repost', 'send'] as const).map(action => <span key={action}><PostIcon name={action} /><span>{action[0].toUpperCase() + action.slice(1)}</span></span>)}</footer>
-    </article> : selected.format === 'email' ? <EmailPreview brandName={brandName} subject={selected.subject} preheader={selected.preheader} senderName={selected.sender_name} body={selected.body} imageUrl={selected.image && campaignId ? `/api/campaigns/${campaignId}/images/${encodeURIComponent(selected.image.image_id)}` : undefined} imageAlt={selected.image?.alt_text} /> : selected.format === 'x' ? <article className="x-card" aria-label="X post preview">
+    </article> : selected.format === 'email' ? <EmailPreview brandName={brandName} subject={selected.subject} preheader={selected.preheader} senderName={selected.sender_name} body={selected.body} imageUrl={selected.image && campaignId ? `/api/campaigns/${campaignId}/images/${encodeURIComponent(selected.image.image_id)}` : undefined} imageAlt={selected.image?.alt_text} imagePending={imagePending} /> : selected.format === 'x' ? <article className="x-card" aria-label="X post preview">
       <header className="x-post-header"><span className="x-avatar" aria-hidden="true">{initials}</span><strong>{brandName}</strong><span className="x-verified" aria-label="Verified">✓</span><span className="x-menu" aria-hidden="true">···</span></header>
       <div className="x-post-content">
         <div className="x-post-body"><PostText text={visibleBody}/></div>
         {selected.body.length > 280 && <button className="x-show-more" onClick={() => setExpandedBody(expanded ? null : selected.body)} aria-expanded={expanded}>{expanded ? 'Show less' : 'Show more'}</button>}
-        {selected.image && campaignId ? <img className="x-post-image" src={`/api/campaigns/${campaignId}/images/${encodeURIComponent(selected.image.image_id)}`} alt={selected.image.alt_text}/> : <div className="x-image-placeholder" aria-hidden="true" />}
+        {selected.image && campaignId ? <img className="x-post-image" src={`/api/campaigns/${campaignId}/images/${encodeURIComponent(selected.image.image_id)}`} alt={selected.image.alt_text}/> : imagePending ? <ImageSkeleton /> : <div className="x-image-placeholder" aria-hidden="true" />}
       </div>
         <div className="x-engagement" aria-hidden="true"><span>Reposts</span><span>Quotes</span><span>Likes</span></div>
         <footer className="x-actions" aria-hidden="true">{[
@@ -145,6 +150,7 @@ export default function AssetPreview({ drafts, brandName, generating, error, rev
         </div>
       </header>
       {selected.image && campaignId && <figure className="blog-preview-hero"><img src={`/api/campaigns/${campaignId}/images/${encodeURIComponent(selected.image.image_id)}`} alt={selected.image.alt_text}/></figure>}
+      {imagePending && <div className="blog-preview-hero"><ImageSkeleton /></div>}
       <div className="blog-preview-copy"><MarkdownCopy body={selected.body}/></div>
       <footer className="blog-preview-footer">{selected.body.split(/\s+/).filter(Boolean).length + selected.title.split(/\s+/).filter(Boolean).length} words<span>Article preview</span></footer>
     </article> : selected.format === 'landing_page' ? <article className="landing-preview" aria-label="Landing page preview">
@@ -154,6 +160,7 @@ export default function AssetPreview({ drafts, brandName, generating, error, rev
         <h2>{selected.title}</h2>
         {selected.byline && <p className="landing-preview-subtitle">{selected.byline}</p>}
         {selected.image && campaignId && <figure className="landing-preview-image"><img src={`/api/campaigns/${campaignId}/images/${encodeURIComponent(selected.image.image_id)}`} alt={selected.image.alt_text}/></figure>}
+        {imagePending && <div className="landing-preview-image"><ImageSkeleton /></div>}
       </section>
       <div className="landing-preview-copy"><MarkdownCopy body={selected.body}/></div>
       <footer className="landing-preview-footer"><span>{brandName}</span><span>Landing page preview</span></footer>
@@ -164,7 +171,7 @@ export default function AssetPreview({ drafts, brandName, generating, error, rev
       {selected.format !== 'x' && <><MarkdownCopy body={selected.body}/><small>{selected.body.split(/\s+/).filter(Boolean).length + selected.title.split(/\s+/).filter(Boolean).length} words</small></>}
     </article>}
     </div>
-    {selected && ['linkedin', 'email', 'x', 'blog', 'landing_page'].includes(selected.format) && campaignId && <div className="image-controls"><button onClick={openImages} disabled={savingImage}>{selected.image ? 'Change image' : 'Add image'}</button>{selected.image && <button onClick={() => chooseImage(null)} disabled={savingImage}>Remove image</button>}{imageError && <p role="alert">{imageError}</p>}{library && <section aria-label="Brand image picker"><button onClick={() => setLibrary(null)}>Close picker</button><div className="image-library">{library.map(image => <button key={image.id} disabled={savingImage} onClick={() => chooseImage(image.id)}><img loading="lazy" src={`/api/campaigns/${campaignId}/images/${encodeURIComponent(image.id)}`} alt={image.description || image.title}/><span>{image.title}</span></button>)}</div>{!library.length && <p>No eligible brand images available.</p>}</section>}</div>}
+    {selected && ['linkedin', 'email', 'x', 'blog', 'landing_page'].includes(selected.format) && campaignId && <div className="image-controls"><button onClick={openImages} disabled={savingImage || generating}>{selected.image ? 'Change image' : 'Add image'}</button>{selected.image && <button onClick={() => chooseImage(null)} disabled={savingImage || generating}>Remove image</button>}{imageError && <p role="alert">{imageError}</p>}{library && <section aria-label="Brand image picker"><button onClick={() => setLibrary(null)}>Close picker</button><div className="image-library">{library.map(image => <button key={image.id} disabled={savingImage} onClick={() => chooseImage(image.id)}><img loading="lazy" src={`/api/campaigns/${campaignId}/images/${encodeURIComponent(image.id)}`} alt={image.description || image.title}/><span>{image.title}</span></button>)}</div>{!library.length && <p>No eligible brand images available.</p>}</section>}</div>}
 
   </aside>;
 }

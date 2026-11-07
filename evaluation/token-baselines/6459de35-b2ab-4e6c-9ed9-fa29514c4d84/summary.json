@@ -1,0 +1,28 @@
+{
+  "campaign_id": "6459de35-b2ab-4e6c-9ed9-fa29514c4d84",
+  "captured_at_utc": "2026-11-06T18:42:54.368503+00:00",
+  "source": "http://localhost:5173/inspect/6459de35-b2ab-4e6c-9ed9-fa29514c4d84",
+  "campaign_state": "generating",
+  "requests": 26,
+  "statuses": {
+    "completed": 21,
+    "timeout": 2,
+    "started": 3
+  },
+  "input_tokens": 1085699,
+  "output_tokens": 25740,
+  "cached_tokens": 16554,
+  "reasoning_tokens": 16196,
+  "estimated_cost_usd": 0.146655865,
+  "unknown_usage_requests": [
+    "b2a168fc-281f-4f20-be72-129e94567d6c",
+    "02edb43a-b369-4c70-8be1-afb140dd1e1d",
+    "7bf53cd2-8b5c-4996-920d-c3abe2b98a43",
+    "9555f6d7-e0f4-4d76-bddb-5307a0cebadd",
+    "ff8b4fed-07b4-4b6e-bccd-a615a466a8cb"
+  ],
+  "sha256": {
+    "runs.json": "f75e251a0394eaa93742a29903e3b585982a1c4b3433a8d903d2c0f45367bdf4",
+    "activity.json": "c003c9aee63af1d3721841908f0380b0bbdecbb4f65a53d55a2ea11412a0659f"
+  }
+}

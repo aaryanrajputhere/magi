@@ -443,7 +443,7 @@ def test_answer_forces_extraction_retrieval_then_plan(tmp_path, monkeypatch):
             result = campaign_agent.run_turn('c', campaigns.Message(text='Use pursuing authorization',
                 question_id='q', version=0), session, Settings(_env_file=None))
             assert actions == ['extract', 'retrieve', 'plan']
-            assert offered == [{'extract_requirements'}, {'retrieve_context'}, {'propose_plan', 'ask_question'}]
+            assert offered == [{'propose_plan', 'ask_question'}]  # prerequisites dispatch without a model call
             assert result['state'] == 'awaiting_approval'
             assert result['pending_question'] is None
             assert result['questions'][0]['answer'] == 'Use pursuing authorization'

@@ -207,7 +207,7 @@ def plan_retrieval(
                 operation="plan_retrieval",
                 model=settings.magi_retrieval_planner_model,
                 instructions=INSTRUCTIONS,
-                input=json.dumps({"brief": brief, **({"requirements": requirements} if requirements else {})}, ensure_ascii=False),
+                input=json.dumps({"requirements": requirements} if requirements is not None else {"brief": brief}, ensure_ascii=False),
                 max_output_tokens=3000,
                 context=RunContext(brand_id=brand_id, campaign_id=campaign_id),
             ),

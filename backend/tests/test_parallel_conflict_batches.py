@@ -1,7 +1,9 @@
 """Independent batches overlap, while verification waits for discovery."""
-import json
+
 from threading import Barrier, Lock
 from types import SimpleNamespace
+
+from review_helpers import review_payload
 
 from app.brand import conflict_coverage as coverage
 from app.config import Settings
@@ -15,7 +17,7 @@ def test_batches_overlap_and_passes_remain_ordered(monkeypatch):
     completed = []
 
     def run(request, *, output_model):
-        payload = json.loads(request.input)
+        payload = review_payload(request)
         if request.operation == 'campaign_conflict_check':
             with lock:
                 assert completed.count('campaign_conflict_find') == 2

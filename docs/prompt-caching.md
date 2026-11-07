@@ -11,6 +11,21 @@ LLM CLI list/show commands expose these measurements. Cache hits depend on
 prefix length, schemas, tool subsets, traffic and provider retention. Different
 asset evidence schemas can prevent reuse even with shared message content.
 
+Conflict discovery, independent checking and grounding repair now share the same
+instructions, output schema and brand-scoped cache key within a review. Their
+first input message contains only the original passages in deterministic source
+order. A later developer message specifies the pass; the final user message
+contains conversation, requirements, decisions, candidate and any prior review.
+Source passages remain untrusted evidence. Each pass still executes separately,
+and the independent check receives the discovery result. Changed source pools or
+asset-bound schemas can still prevent reuse; cache hits are not guaranteed.
+
+Budget checks include the actual serialized message envelope, task instructions
+and output schema before both batching and dispatch. Lossless batching and saved
+stage checkpoints remain in place. The review version is bumped so old completed
+stage artifacts cannot mask the new request layout. Existing campaign traces are
+unchanged. Actual savings require a new run with provider-reported usage.
+
 Generation throughput
 ---------------------
 Approved assets run through at most three concurrent worker pipelines. Each worker
@@ -50,3 +65,81 @@ remain recorded. Previously committed preparation checkpoints are reused. Saved
 copy/image edits, approval and generation are not automatically replayed. Missing
 essential evidence, refusal, configuration and logging failures are not treated
 as successful work, and persistent failures remain visible rather than looping.
+
+Inspect cost estimates
+----------------------
+The pricing registry includes GPT-6 Luna Standard text rates verified on November
+7, 2026 against https://developers.openai.com/api/docs/models/gpt-6-luna.
+Requests above 272,000 input tokens apply the long-context multipliers to the full
+request. Reported cache writes use the default 30-minute write rate; older usage
+without a write counter is estimated with zero separate writes. These are model
+request estimates, not provider invoices or external-tool fees.
+
+Inspect recovers missing Luna estimates from saved raw usage when the original
+failure was missing model pricing. This is a read-only display calculation using
+the current registry snapshot; previously saved estimates remain unchanged.
+Missing usage and unsupported service tiers remain unknown and are excluded from
+the partial subtotal. New requests persist their estimate and pricing snapshot.
+
+Stable schemas and selected draft prefixes
+-----------------------------------------
+Draft writing uses GeneratedDraft with source_ids:list[str], independent of the
+selected source IDs. Unknown IDs fail before validation or saving. Source selection
+still runs once per approved attempt; the router computes common brand and channel
+IDs by intersecting already-selected writing passages. It never adds originals for
+cache reuse. Draft prompts place shared brand originals, shared channel originals,
+remaining asset originals and changing task data in separate messages. References
+use immutable chunk IDs; original wording and dependencies remain intact.
+
+Planning puts original passages before campaign mappings and uses the fixed outline
+schema; saved deliverable checks still reject unknown, missing or duplicate assets.
+Plan verification uses a fixed schema plus Python checks for source IDs, reviewed
+asset coverage and campaign/asset field scope. Rechecks retain their focused source
+packets. Field repair retains its bounded patch schema and exact-target checks.
+Image selection uses a fixed batch schema and Python checks for exact asset coverage
+and per-asset shortlist membership. Visual rules precede changing assets/catalog
+shortlists. Exact image-query embeddings are persisted by brand and a digest of
+model, dimensions and input, separately from catalog vectors.
+
+Ordinary agent tool results contain status, version, affected asset, clarification
+and relevant per-asset outcomes rather than campaign snapshots. read_campaign is
+an explicit full-state read; within-turn messages/tool results remain append-only.
+Substantive draft revision has a separate structured clarification field; a returned
+question is saved as pending input while the original draft is retained unchanged.
+Small editorial/memory calls are not padded to meet cache thresholds.
+
+On GPT-5.6+ and GPT-6 models, the client marks reusable message endings with explicit
+cache breakpoints. Earlier/unknown models keep the original plain-message request.
+This is necessary because a shared prefix alone need not have been written as a
+reusable cache boundary. The first request can still be cold, and simultaneous cold
+writers need not warm one another. No synthetic prewarming or write-only calls are
+added. Inspect exposes cache reads and writes; provider usage remains the evidence
+of actual reuse. See the official guidance at
+https://developers.openai.com/api/docs/guides/prompt-caching.
+
+Use backend/scripts/audit_prompt_cache.py with saved inspector JSON files to compare
+per-operation input/output tokens, cache reads/writes, summed request durations and
+estimated costs. Unknown counters remain unknown. The summed request durations are
+not campaign wall time when workers overlap; compare equivalent completed stages
+and report quality/asset-count differences instead of attributing them to caching.
+
+Call reduction instead of budget blocking
+----------------------------------------
+The temporary planning budget guard and automatic token-counting requests were
+removed. Existing recorded budget_blocked rows remain historical evidence; they
+do not block future requests. The UI no longer displays a spending ceiling.
+
+Normal preparation does not call a gap model unless an essential evidence gap
+has actually been recorded. Supplementary searches are keyed to substantive
+retrieval intent; selecting an already-reviewed conflict option does not create
+another search round. With unchanged sources, requirements, model and authority,
+answers to checked choices update campaign intent and proceed directly to planning.
+They do not certify new factual claims or grant publication permission. New facts,
+changed source versions or free-form instructions still require the appropriate
+review. Both initial discovery and independent checking remain available.
+
+Retrying evidence review resumes valid receipts instead of clearing all completed
+work. Status messages cannot invalidate a receipt. Scoped review and smaller
+planning packets remain; original quotations, dependencies, citation checks and
+plan verification are preserved. No new full paid evaluation was started for this
+change.

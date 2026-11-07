@@ -31,7 +31,7 @@ def launch_requirements():
             'unknowns': [], 'issues': [], 'assets': [
                 {'id': f'launch-{i}', 'format': format, 'audience': f'Audience {i}',
                  'purpose': f'Deliverable {i}', 'timing': '2027-01-26',
-                 'sender_or_byline': 'Maren' if i == 4 else None,
+                 'sender_or_byline': 'Maren' if i == 4 else None, 'provenance': [],
                  'constraints': ['Draft only; Maren decides'] if i == 4 else []}
                 for i, format in enumerate(formats, 1)]}
 
@@ -67,7 +67,7 @@ def test_extracts_unsummarized_brief_with_eleven_distinct_deliverables():
     class Client:
         def run(self, request, **kwargs):
             seen.append(request)
-            payload = json.loads(request.input)
+            payload = {k: v for m in request.input for k, v in json.loads(m['content']).items()}
             assert payload['conversation'][0]['text'] == brief
             assert 'Maren' in payload['conversation'][0]['text']
             assert request.operation == 'campaign_requirements'

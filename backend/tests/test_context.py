@@ -372,17 +372,19 @@ def test_campaign_plan_saves_full_requirements_and_expands_each_channel(corpus, 
     engine, brand, _ = corpus
     source = {'conversation': [{'role': 'user', 'text': 'Full original launch brief ' * 400}],
               'route': 'campaign'}
-    requirements = {'topic_details': [], 'topic': 'Leashgate scope', 'constraints': ['No customer proof'], 'unknowns': [],
+    requirements = {'topic_details': [], 'topic': 'Leashgate scope', 'constraints': ['No customer proof'], 'unknowns': [], 'issues': [],
                     'assets': [{'id': f'asset-{i}', 'format': channel, 'audience': 'Platform leads',
                                 'purpose': 'Launch', 'timing': '2027-01-26',
-                                'sender_or_byline': None, 'constraints': []}
+                                'sender_or_byline': None, 'constraints': [], 'provenance': []}
                                for i, channel in enumerate(['linkedin', 'x', 'email', 'blog', 'landing_page'])]}
     seen = []
 
     class Client:
         def run(self, request, **kwargs):
             seen.append(request.operation)
-            payload = json.loads(request.input)
+            payload = (json.loads(request.input) if isinstance(request.input, str) else
+                       {k: v for m in request.input for k, v in json.loads(m['content']).items()})
+            payload.pop('conversation_followup', None)
             if request.operation == 'campaign_requirements':
                 assert payload == source
                 return SimpleNamespace(parsed=CampaignRequirements.model_validate(requirements), run_id='extract')

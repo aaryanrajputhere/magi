@@ -27,3 +27,21 @@ def test_long_cache_keys_fit_provider_limit_and_preserve_scope():
     assert key != prompt_cache_key(brand, operation + '_other')
     assert key != prompt_cache_key(brand + '_other', operation)
     assert len(prompt_cache_key('b' * 1000, 'o' * 1000)) <= 64
+
+
+def test_explicit_boundaries_preserve_text_and_only_mark_reusable_messages():
+    from copy import deepcopy
+
+    from app.llm.prompt_cache import cacheable_input
+    messages = [{'role': 'user', 'content': 'Original sources'},
+                {'role': 'user', 'content': 'Changing task'}]
+    original = deepcopy(messages)
+    for model in ('gpt-6-luna', 'gpt-6.1-sol', 'gpt-5.6'):
+        prepared = cacheable_input(messages, model, 1)
+        part = prepared[0]['content'][0]
+        assert part['text'] == messages[0]['content']
+        assert part['prompt_cache_breakpoint'] == {'mode': 'explicit'}
+        assert prepared[1] == messages[1]
+    for model in ('gpt-4.1-mini', 'gpt-5.5', 'custom-model'):
+        assert cacheable_input(messages, model, 1) == messages
+    assert messages == original

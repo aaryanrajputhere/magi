@@ -1,7 +1,7 @@
-import {useEffect,useRef,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import InspectorEvidence,{StepPreview,inputPreview,type Activity} from './InspectorEvidence';
 
-type Run={id:string;operation:string;model:string;status:string;duration_ms:number|null;input_tokens:number|null;output_tokens:number|null;cost:string|number|null;request:unknown;response:unknown;error:unknown};
+type Run={id:string;operation:string;model:string;status:string;duration_ms:number|null;input_tokens:number|null;cached_input_tokens:number|null;cache_write_tokens?:number|null;prompt_metadata?:Record<string,unknown>;output_tokens:number|null;cost:string|number|null;loaded?:boolean;request:unknown;response:unknown;error:unknown};
 function requestCost(cost:Run['cost']):number|null {
  if(cost==null||cost==='')return null;
  const value=Number(cost);
@@ -9,6 +9,16 @@ function requestCost(cost:Run['cost']):number|null {
 }
 function formatCost(cost:number|null) {
  return cost==null?'Unknown':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:6}).format(cost);
+}
+function cacheUsage(runs:Run[]) {
+ const measured=runs.filter(r=>typeof r.cached_input_tokens==='number'&&r.cached_input_tokens>=0&&typeof r.input_tokens==='number'&&r.input_tokens>0&&r.cached_input_tokens<=r.input_tokens);
+ const input=measured.reduce((sum,r)=>sum+r.input_tokens!,0);
+ const cached=measured.reduce((sum,r)=>sum+r.cached_input_tokens!,0);
+ return {rate:input?`${(100*cached/input).toFixed(1)}%`:'Unknown',input,cached,excluded:runs.length-measured.length};
+}
+function CacheRate({runs}:{runs:Run[]}) {
+ const usage=cacheUsage(runs);
+ return <span title="Cached input tokens divided by input tokens for requests with reported cache usage. Output tokens and requests without cache usage are excluded."><strong>{usage.rate}</strong> cache hit rate<small className="inspector-cost-note">{usage.cached.toLocaleString()} / {usage.input.toLocaleString()} input tokens{usage.excluded>0?` · ${usage.excluded} request${usage.excluded===1?'':'s'} excluded`:''}</small></span>;
 }
 const steps:Record<string,{title:string;description:string}>={
  campaign_conflict_find:{title:'Find campaign conflicts',description:'Review original evidence for incompatible requirements, limitations and rules.'},
@@ -28,6 +38,11 @@ const steps:Record<string,{title:string;description:string}>={
  campaign_message_route:{title:'Understand your message',description:'Decide whether your message needs a campaign plan or a quick answer.'},
  campaign_question_review:{title:'Review brand information',description:'Review retrieved chunks for one question using confirmed source authority. Up to three question reviews run concurrently.'},
  campaign_reconciliation:{title:'Compare the findings',description:'Compare question findings and their cited original passages for cross-question conflicts.'},
+ campaign_requirements_update:{title:'Apply your clarification',description:'Update affected requirements while preserving unchanged assets.'},
+ campaign_plan_strategy:{title:'Establish campaign strategy',description:'Set the shared direction and asset calendar before channel planning.'},
+ campaign_plan_channel:{title:'Outline a campaign channel',description:'Build channel outlines using the shared campaign strategy.'},
+ campaign_plan_verification_global:{title:'Check campaign consistency',description:'Verify shared requirements, decisions and cross-channel dependencies.'},
+ campaign_plan_verification_channel:{title:'Check channel outlines',description:'Verify channel-specific rules against original evidence.'},
  campaign_plan:{title:'Create your campaign plan',description:'Turn the reviewed information into content angles and a proposed plan.'},
  generate_campaign_asset:{title:'Write a draft',description:'Write one piece of content from your approved plan.'},
 };
@@ -42,6 +57,25 @@ function ReadableValue({value}:{value:unknown}) {
  if(Array.isArray(parsed))return parsed.length?<ol>{parsed.map((item,i)=><li key={i}><ReadableValue value={item}/></li>)}</ol>:<p>None.</p>;
  if(typeof parsed==='object')return <div>{Object.entries(parsed).map(([key,item])=><section key={key} style={{marginBottom:16}}><strong>{label(key)}</strong><ReadableValue value={item}/></section>)}</div>;
  return <p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{typeof parsed==='boolean'?(parsed?'Yes':'No'):String(parsed)}</p>;
+}
+function PlanReviewDiagnostics({review,campaignId}:{review:Record<string,unknown>;campaignId:string}) {
+ const [busy,setBusy]=useState(false);
+ const [error,setError]=useState('');
+ async function retry() {
+  setBusy(true);setError('');
+  try {
+   const current=await fetch(`/api/campaigns/${encodeURIComponent(campaignId)}`);
+   if(!current.ok)throw new Error('Could not load the current campaign.');
+   const campaign=await current.json() as {version:number};
+   const response=await fetch(`/api/campaigns/${encodeURIComponent(campaignId)}/repair-plan`,{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:campaign.version})});
+   if(!response.ok)throw new Error(await response.text());
+  }catch(e){setError(String(e));}finally{setBusy(false);}
+ }
+ return <details><summary>Plan verification diagnostics</summary><ReadableValue value={review}/>
+  {review.status==='incomplete'&&<button disabled={busy} onClick={()=>void retry()}>{busy?'Rechecking…':'Retry plan verification'}</button>}
+  {error&&<p role="alert">{error}</p>}
+ </details>;
 }
 function responseContent(response:unknown):unknown {
  if(!response||typeof response!=='object')return response;
@@ -116,13 +150,14 @@ function CampaignFlow({runs,onSelect}:{runs:Run[];onSelect:(id:string,tab:Detail
  })}<p className="campaign-flow-note">Stages group recorded requests by purpose. Requests may revisit a stage. Rules guide the content; limitations describe evidence gaps; conflicts require a choice only when applicable requirements disagree.</p></div>;
 }
 type DetailTab='request'|'response'|'tools'|'error';
-function ActivityGraph({runs,activity,selected,onSelect}:{runs:Run[];activity:Activity|null;selected:string|undefined;onSelect:(id:string,tab:DetailTab)=>void}) {
+function ActivityGraph({runs,activity,selected,onSelect,onPreview}:{runs:Run[];activity:Activity|null;selected:string|undefined;onPreview:(id:string)=>void;onSelect:(id:string,tab:DetailTab)=>void}) {
  const [zoom,setZoom]=useState(1);
- const [detailed,setDetailed]=useState(false);
+ const [detailed,setDetailed]=useState(true);
  const graphRef=useRef<HTMLElement>(null);
  const [expanded,setExpanded]=useState(false);
  const [preview,setPreview]=useState<{id:string;tab:DetailTab}|null>(null);
  const previewRun=runs.find(run=>run.id===preview?.id);
+ useEffect(()=>{if(preview?.id)onPreview(preview.id);},[preview?.id,onPreview]);
  useEffect(()=>{
   const sync=()=>setExpanded(document.fullscreenElement===graphRef.current);
   const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){setExpanded(false);setPreview(null);}};
@@ -146,7 +181,7 @@ function ActivityGraph({runs,activity,selected,onSelect}:{runs:Run[];activity:Ac
  };
  const branchCount=Math.max(0,...runs.map(run=>{const branches=retrievalBranches(run,activity);return branches?1+Math.max(1,branches.channels.size):0;}));
  const width=Math.max(850,runs.length*340+80),height=branchCount?700+branchCount*220:650;
- return <section ref={graphRef} className={`activity-graph${expanded?' activity-graph-expanded':''}`} aria-label="Campaign activity graph" onMouseOver={event=>showPreview(event.target)} onFocusCapture={event=>showPreview(event.target)}>
+ return <section ref={graphRef} className={`activity-graph${expanded?' activity-graph-expanded':''}`} aria-label="Campaign activity graph" onClick={event=>showPreview(event.target)} onFocusCapture={event=>showPreview(event.target)}>
   <header className="activity-graph-toolbar"><div><strong>Execution map</strong><span>Follow the campaign stages or expand the individual requests.</span></div><div className="activity-graph-controls"><button aria-pressed={detailed} onClick={()=>setDetailed(value=>!value)}>{detailed?'Show simple flow':'Show request map'}</button><button aria-label="Zoom out" disabled={zoom<=0.5} onClick={()=>setZoom(z=>Math.max(0.5,z-0.1))}>−</button><output>{Math.round(zoom*100)}%</output><button aria-label="Zoom in" disabled={zoom>=1.5} onClick={()=>setZoom(z=>Math.min(1.5,z+0.1))}>+</button><button onClick={()=>setZoom(1)}>Reset</button><button aria-expanded={expanded} onClick={()=>void toggleFullscreen()}>{expanded?'Exit full screen':'Full screen ⛶'}</button></div></header>
   {!detailed?<CampaignFlow runs={runs} onSelect={onSelect}/>:<div className={`activity-graph-body${previewRun?' has-preview':''}`}><div className="activity-graph-viewport">{!runs.length?<div className="activity-graph-empty"><strong>Waiting for campaign activity</strong><p>Requests and tool calls will appear here as connected nodes.</p></div>:<div style={{width:width*zoom,height:height*zoom}}><div className="activity-graph-canvas" style={{width,height,transform:`scale(${zoom})`}}>
    <svg className="activity-graph-edges" width={width} height={height} aria-hidden="true"><defs><marker id="activity-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#ac96c7"/></marker></defs>{runs.map((r,i)=>{const x=40+i*340;return <g key={r.id}><path d={`M ${x+130} 140 V 175 M ${x+130} 275 V 310`}/>{i<runs.length-1&&<path className="activity-order-edge" d={`M ${x+260} 225 H ${x+340}`}/ >}{toolEvents(r).length>0&&<path d={`M ${x+260} 355 H ${x+285} V 465 H ${x+260}`}/>}</g>;})}</svg>
@@ -174,9 +209,10 @@ function ActivityGraph({runs,activity,selected,onSelect}:{runs:Run[];activity:Ac
   {previewRun&&preview&&<aside className="activity-node-details" aria-label="Node details">
    <header><div><small>NODE DETAILS</small><h3>{steps[previewRun.operation]?.title??label(previewRun.operation)}</h3></div><button aria-label="Close node details" onClick={()=>setPreview(null)}>×</button></header>
    <p>{steps[previewRun.operation]?.description}</p>
-   <div className="activity-detail-metadata"><span>{previewRun.model}</span><span>{label(previewRun.status)}</span><span>{previewRun.duration_ms==null?'In progress':`${(previewRun.duration_ms/1000).toFixed(1)}s`}</span><span>{((previewRun.input_tokens??0)+(previewRun.output_tokens??0)).toLocaleString()} tokens</span><span>Estimated cost: {formatCost(requestCost(previewRun.cost))}</span></div>
+   <div className="activity-detail-metadata"><span>{previewRun.model}</span><span>{label(previewRun.status)}</span><span>{previewRun.duration_ms==null?'In progress':`${(previewRun.duration_ms/1000).toFixed(1)}s`}</span><span>{((previewRun.input_tokens??0)+(previewRun.output_tokens??0)).toLocaleString()} tokens</span><span>Estimated cost: {formatCost(requestCost(previewRun.cost))}</span><CacheRate runs={[previewRun]}/></div>
    <div className="inspector-tabs" role="group" aria-label="Node detail view">{(['request','response','tools','error'] as const).map(t=><button key={t} aria-pressed={preview.tab===t} onClick={()=>setPreview({...preview,tab:t})}>{t==='request'?'Input':t==='response'?'Output':t==='tools'?'Tools':'Errors'}</button>)}</div>
    <div className="activity-detail-content" key={`${preview.id}-${preview.tab}`}>
+    {!previewRun.loaded&&<p role="status">Loading request…</p>}
     {preview.tab==='request'?<><StepPreview request={previewRun.request}/><details><summary>Instructions and full request</summary><ReadableValue value={previewRun.request}/></details></>:preview.tab==='tools'?<ReadableValue value={toolEvents(previewRun)}/>:preview.tab==='error'?<ReadableValue value={previewRun.error}/>:previewRun.operation==='campaign_requirements'?<RequestedAssets runs={[previewRun]}/>:<ReadableValue value={responseContent(previewRun.response)}/>}
     <details className="inspector-raw"><summary>Raw JSON</summary><pre>{JSON.stringify(preview.tab==='tools'?toolEvents(previewRun):preview.tab==='request'?previewRun.request:preview.tab==='error'?previewRun.error:previewRun.response,null,2)}</pre></details>
    </div>
@@ -202,9 +238,28 @@ function RequestedAssets({runs}:{runs:Run[]}) {
 }
 export default function ProcessInspector({campaignId}:{campaignId:string}) {
  const [activity,setActivity]=useState<Activity|null>(null);
- const [runs,setRuns]=useState<Run[]>([]),[selected,setSelected]=useState(''),[tab,setTab]=useState<DetailTab>('response'),[error,setError]=useState('');
+ const [showEvidence,setShowEvidence]=useState(false);
+ const [details,setDetails]=useState<Record<string,Run>>({});
+ const pending=useRef(new Set<string>());
+ const [summaries,setSummaries]=useState<Run[]>([]);
+ const runs=summaries.map(run=>{
+  const detail=details[run.id];
+  return detail&&detail.status===run.status&&detail.input_tokens===run.input_tokens&&detail.output_tokens===run.output_tokens?{...detail,cost:run.cost,cached_input_tokens:run.cached_input_tokens}:run;
+ });
+ const loadDetail=useCallback(async(id:string)=>{
+  if(pending.current.has(id))return;
+  pending.current.add(id);
+  try {
+   const response=await fetch(`/api/campaigns/${encodeURIComponent(campaignId)}/runs?run_id=${encodeURIComponent(id)}`);
+   if(!response.ok)throw Error(`HTTP ${response.status}`);
+   const values:Run[]=await response.json();
+   if(values[0])setDetails(old=>({...old,[id]:{...values[0],loaded:true}}));
+  }catch(e){setError(`Could not load request: ${String(e)}`);}
+  finally{pending.current.delete(id);}
+ },[campaignId]);
+ const [selected,setSelected]=useState(''),[tab,setTab]=useState<DetailTab>('response'),[error,setError]=useState('');
  useEffect(()=>{
-  setRuns([]);setActivity(null);setSelected('');setError('');
+  setSummaries([]);setDetails({});setActivity(null);setSelected('');setError('');
   let alive=true;
   const controller=new AbortController();
   const errors:Record<string,string>={};
@@ -215,14 +270,30 @@ export default function ProcessInspector({campaignId}:{campaignId:string}) {
     if(!response.ok)throw Error(`HTTP ${response.status}`);
     const result:T=await response.json();
     if(alive){update(result);delete errors[path];setError(Object.values(errors).join(' '));}
-   }catch(e){if(alive){errors[path]=`Could not load ${path==='runs'?'model requests':'retrieval evidence'}: ${String(e)}. Retrying…`;setError(Object.values(errors).join(' '));}}
+   }catch(e){if(alive){errors[path]=`Could not load ${path.startsWith('runs')?'model requests':'retrieval evidence'}: ${String(e)}. Retrying…`;setError(Object.values(errors).join(' '));}}
    if(alive){const timer=setTimeout(()=>{timers.delete(timer);void repeat(path,update);},2000);timers.add(timer);}
   };
-  void repeat<Run[]>('runs',setRuns);
-  void repeat<Activity>('activity',setActivity);
+  void repeat<Run[]>('runs?summary=true',setSummaries);
   return()=>{alive=false;controller.abort();timers.forEach(clearTimeout);};
  },[campaignId]);
- const run=runs.find(r=>r.id===selected)||runs[runs.length-1];
+ useEffect(()=>{
+  if(!showEvidence)return;
+  const controller=new AbortController();
+  let timer:ReturnType<typeof setTimeout>;
+  const refresh=async()=>{
+   try {
+    const response=await fetch(`/api/campaigns/${encodeURIComponent(campaignId)}/activity`,{signal:controller.signal});
+    if(!response.ok)throw Error(`HTTP ${response.status}`);
+    const value:Activity=await response.json();
+    if(!controller.signal.aborted)setActivity(value);
+   }catch(e){if(!controller.signal.aborted)setError(`Could not load evidence: ${String(e)}`);}
+   if(!controller.signal.aborted)timer=setTimeout(()=>void refresh(),2000);
+  };
+  void refresh();
+  return()=>{controller.abort();clearTimeout(timer);};
+ },[campaignId,showEvidence]);
+ const run=runs.find(r=>r.id===selected);
+ useEffect(()=>{if(run&&!run.loaded)void loadDetail(run.id);},[run,loadDetail]);
  const step=run&&(steps[run.operation]??{title:label(run.operation),description:'Review what this step received and returned.'});
  const events=run?toolEvents(run):[];
  const content=run&&(tab==='response'?responseContent(run.response):tab==='error'?run.error:run.request);
@@ -234,12 +305,18 @@ export default function ProcessInspector({campaignId}:{campaignId:string}) {
   <header className="inspector-page-heading"><a href={`/#campaigns/${encodeURIComponent(campaignId)}`}>← Campaign</a><span>Campaign ID: <code>{campaignId}</code></span></header>
   <div id="campaign-inspector" className="inspector-shell">
    <header className="inspector-heading"><div><h2>Campaign activity</h2><p>Explore model requests, tool calls, and results</p></div><span className="inspector-live">● Updating every 2s</span></header>
-   <div className="inspector-stats"><span><strong>{runs.length}</strong> LLM requests</span><span><strong>{runs.reduce((n,r)=>n+toolEvents(r).filter(e=>e.type==='function_call').length,0)}</strong> tool calls</span><span><strong>{runs.reduce((n,r)=>n+(r.input_tokens??0)+(r.output_tokens??0),0).toLocaleString()}</strong> tokens</span><span title="Sum of saved estimated model-request costs for this campaign, including retries. Updates every 2 seconds."><strong>{formatCost(totalCost)}</strong> estimated total (USD){unpricedCount>0&&<small className="inspector-cost-note">{pricedCosts.length?'Partial · ':''}{unpricedCount} request{unpricedCount===1?'':'s'} awaiting cost</small>}</span></div>
+   {activity?.planning_scope&&<details><summary>Planning evidence selection</summary><ReadableValue value={activity.planning_scope}/></details>}
+   {activity?.conflict_coverage?.evidence_scope!=null&&<details><summary>Conflict evidence selection</summary><ReadableValue value={activity.conflict_coverage.evidence_scope}/></details>}
+   {activity?.plan_review&&<PlanReviewDiagnostics review={activity.plan_review} campaignId={campaignId}/>}
+   <div className="inspector-stats"><CacheRate runs={runs}/><span><strong>{runs.length}</strong> LLM requests</span><span><strong>{runs.reduce((n,r)=>n+(r.input_tokens??0)+(r.output_tokens??0),0).toLocaleString()}</strong> tokens</span><span title="Sum of estimated model-request costs for this campaign, including retries. Updates every 2 seconds."><strong>{formatCost(totalCost)}</strong> estimated total (USD){unpricedCount>0&&<small className="inspector-cost-note">{pricedCosts.length?'Partial · ':''}{unpricedCount} request{unpricedCount===1?'':'s'} with unknown cost</small>}</span></div>
    {error&&<p role="alert">{error}</p>}
-   {activity&&<InspectorEvidence activity={activity}/>}
-   <ActivityGraph runs={runs} activity={activity} selected={run?.id} onSelect={(id,nextTab)=>{setSelected(id);setTab(nextTab);}}/>
+   <button aria-expanded={showEvidence} onClick={()=>setShowEvidence(value=>!value)}>{showEvidence?'Hide retrieval evidence':'View retrieval evidence'}</button>
+   {showEvidence&&(activity?<InspectorEvidence activity={activity}/>:<p role="status">Loading evidence…</p>)}
+   <ActivityGraph onPreview={id=>{if(!runs.find(r=>r.id===id)?.loaded)void loadDetail(id);}} runs={runs} activity={activity} selected={run?.id} onSelect={(id,nextTab)=>{setSelected(id);setTab(nextTab);}}/>
    <div className="inspector-layout inspector-graph-layout">
-    {run&&step&&<article className="inspector-detail"><h3>{step.title}</h3><p>{step.description}</p><p>Estimated request cost: <strong>{formatCost(requestCost(run.cost))}</strong></p><StepPreview request={run.request}/>
+    {run&&!run.loaded&&<p role="status">Loading request…</p>}
+    {run?.loaded&&step&&<article className="inspector-detail"><h3>{step.title}</h3><p>{step.description}</p><p>Estimated request cost: <strong>{formatCost(requestCost(run.cost))}</strong></p><p><CacheRate runs={[run]}/></p><p>Cache writes: {run.cache_write_tokens==null?'Unknown':run.cache_write_tokens.toLocaleString()} tokens</p>
+     {run.prompt_metadata&&Object.keys(run.prompt_metadata).length>0&&<details><summary>Prompt cache diagnostics</summary><ReadableValue value={run.prompt_metadata}/></details>}<StepPreview request={run.request}/>
      <div className="inspector-tabs" role="group" aria-label="Request information">{(['response','request','tools','error'] as const).map(t=><button key={t} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t==='request'?'Full request':t==='response'?'Response':t==='tools'?'Tool calls & results':'Errors'}</button>)}</div>
      <div className="inspector-content">{tab==='tools'?(events.length?events.map((event,i)=><section key={i}><h4>{event.name||'Tool result'}</h4><ReadableValue value={event}/></section>):<p>No tool calls recorded in this request.</p>):tab==='error'&&!run.error?<p>No errors recorded.</p>:tab==='response'&&run.operation==='campaign_requirements'?<RequestedAssets runs={[run]}/>:<ReadableValue value={content}/>}</div>
      <details key={`${run.id}-${tab}`} className="inspector-raw"><summary>Raw JSON and metadata</summary><p>Run: {run.id} · Estimated cost: {formatCost(requestCost(run.cost))}</p><pre>{JSON.stringify(tab==='tools'?events:run[tab],null,2)}</pre></details>

@@ -1,0 +1,1316 @@
+# Leashgate GA: every recorded request
+
+Numbering is request start order. Raw request and response JSON are in the adjacent `-runs.json`; full extracted outputs are in `-runs-outputs.txt`. Tokens are provider-reported; missing values remain unknown. Each entry inventories the actual input and result. Model completion does not establish application-level acceptance.
+
+## 1. campaign_memory
+
+Run `d5106343-cfdb-49ea-9c5b-97e6e561a014`; gpt-6-luna; completed; 3425 ms; input 2396; output 97; cached 0; estimated cost 0.000347925.
+
+- Input 1, input: 9,068 chars; explicit boundary: False. new_message (9,026 chars), existing_memories (2 chars)
+
+Schema SHA256: `52e198fd71d9bf3b`. Serialized request: 10,853 chars.
+
+Actual structured output:
+
+```json
+{"changes":[]}
+```
+
+## 2. campaign_agent_step
+
+Run `d6629e1b-c414-4e62-8312-44b9875f4188`; gpt-6-luna; completed; 1814 ms; input 5772; output 43; cached 1299; estimated cost 0.000590465.
+
+- Input 1, user: 18,388 chars; explicit boundary: False. conversation (9,054 chars), request (9,026 chars), state (216 chars), brand_preferences (2 chars), current_decisions (2 chars)
+
+Schema SHA256: `74234e98afe7498f`. Serialized request: 28,746 chars.
+
+Tool selections: [{"id": "fc_079bda65232d8ba6016aeeb75457dc87d2bdfb2eb0ec6ac1a7", "type": "function_call", "status": "completed", "arguments": "{\"addition\":false}", "call_id": "call_pC9PWmZ62SjT8vrKg2arZ9z0", "name": "extract_requirements"}]
+
+## 3. campaign_requirements
+
+Run `805b169d-706c-4665-8fa9-a16909d3ab6f`; gpt-6-luna; completed; 52454 ms; input 3447; output 7780; cached 1234; estimated cost 0.00417889.
+
+- Input 1, input: 9,265 chars; explicit boundary: False. conversation (9,128 chars), route (10 chars), previous_requirements (4 chars), current_decisions (2 chars), current_plan (2 chars), current_drafts (2 chars)
+
+Schema SHA256: `79983013da88f702`. Serialized request: 16,802 chars.
+
+Actual structured output:
+
+```json
+{
+  "topic": "Wickhold Leashgate general availability",
+  "topic_details": [
+    {
+      "heading": "Brief status and ownership",
+      "content": "Campaign brief: Wickhold Leashgate general availability. From: Ilse Varga-Holm, VP Marketing. Date: October 20, 2026. Status: Approved to plan. Internal until launch day. Reviewers: Noor Eskelund (audience, goal, voice), Priit Salonen (claims), Dov Achterberg (technical read), Kofi Anselm (developer content, X). Product and Legal have confirmed the status change, and this brief is Product Marketing's announcement of it for everyone working on the campaign."
+    },
+    {
+      "heading": "Launch status, naming and embargo",
+      "content": "Wickhold Leashgate reaches general availability on Tuesday, January 26, 2027. Every asset below publishes on or after January 26, so it says \"Wickhold Leashgate\" on first mention and \"Leashgate\" after that, with no early access label. On launch day it is correct to say Wickhold Leashgate is generally available. The label rule in the 2026 release notes, the early access wording in the messaging house and the Leashgate section of the approved claims all stay in force for everything else until January 26. Those documents get updated for launch. Where one of them conflicts with this brief on Leashgate's status alone, this brief wins for these assets. On anything else, they stand. Nothing external mentions general availability or the date before January 26. No teasers, no \"coming soon\", no countdown. Early access copy already in market stays as it is until launch day."
+    },
+    {
+      "heading": "Product scope and behavior",
+      "content": "General availability changes the status of the product and not its scope. Leashgate at launch is what the product overview and the 2026 release notes describe: agent identity, tool-call policy, and the blast radius report, with a gateway running as a sidecar or as a shared Deployment, for agents that make tool calls over HTTP or MCP. Approvals can be answered from Slack. The tie-in that lets Leashgate ask Wickhold Quenchline for a containment action is optional, off by default, and needs Quenchline on the node."
+    },
+    {
+      "heading": "Goals and internal metrics",
+      "content": "The numbers here are internal and do not go in copy. Customers hear it from us first, on launch day, with enough detail for a platform team to judge whether it applies to them. 60 demo requests by March 31, 2027 from teams with an agent running against real tools, in staging or production. Get the blast radius report into security reviews. We want platform leads to bring it to their next one, as the answer to \"what is the worst this agent could do on a bad day?\" Sales will track how often it comes up on calls."
+    },
+    {
+      "heading": "Audiences",
+      "content": "Primary: platform leads who have been asked to get an agent into production and have a security review standing in their way. They already have the concern, and the budget conversation has started. They read docs first, want the failure behavior early, and trust a config snippet over a paragraph. Secondary: security leaders and security architects writing internal rules for agent use. They need something more enforceable than a policy document. Lead with the decision they have to make. No humor for this group. Existing customers get the news first, through the technical customer list. Several asked about agents at Slow Burn Summit, and most were not running any in production yet, so do not write as if they all are. Keep these audiences apart. Platform and security leadership are separate email lists, and they stay separate here. The landing page is written for platform leads. Security leaders get their own email and the launch post."
+    },
+    {
+      "heading": "Messages and required wording",
+      "content": "Treat an agent as a workload with credentials, and give it a boundary. This is pillar 3 of the messaging house and the argument under everything else. Talk about tool calls in a cluster. Leave the future of work to other people. What it does. Leashgate gives each agent an identity, checks every tool call against a tool-call policy, writes a decision record, and reports the blast radius of an agent, including any route around the gateway. The outcome statement. Leashgate \"limits what a compromised agent can do\". Use those words exactly. For platform leads. defaultAction: deny. Your agent framework stays the same. Leashgate fails closed, so an outage of the gateway stops the agent's tools, and teams need to plan for that. Say so plainly. For security leaders. Before an agent goes live, know its blast radius. Every decision leaves a record your team can read in a security review. What it does not do. Leashgate sees tool calls, and it does not read or judge prompts. It runs on Kubernetes only, and frameworks that call tools in-process, with no network hop, are out of scope. Being plain about this is part of the pitch."
+    },
+    {
+      "heading": "Campaign scope and channel context",
+      "content": "Eleven assets, on owned channels only. This is my starting list, so if the mix is wrong, say so when you bring the plan on November 6. The release note, press and sales enablement run separately and are not part of this brief."
+    },
+    {
+      "heading": "Landing page requirements",
+      "content": "The landing page is the product page, so it has no end date. Use the existing product layout. Its main action is \"Book a demo\", with a secondary link to the docs for readers who are not ready for a form. A visitor arrives from one of the emails, a social post or the docs, and needs to see what the product does and how it fails."
+    },
+    {
+      "heading": "Timeline and dependencies",
+      "content": "2026-11-06: Asset plan agreed with me, and Noor's OK on audience and goal. 2026-12-11: Outlines for both blog posts to Kofi. 2027-01-08: All drafts in. 2027-01-15: Claims check back from Priit. Page copy to the web team. Maren's draft to Maren. 2027-01-21: X posts to Kofi for review and scheduling. 2027-01-26: Launch. Release note, landing page, customer email, LinkedIn, X. 2027-01-27: Launch post and prospect emails, one day after customers and after the release note. 2027-01-28: Second company LinkedIn post. 2027-02-02: How-to post and its X post. Kofi moves both to February 3 if a release note lands on the 2nd. 2027-02-09: Two-week check on the landing page form. 2027-03-31: Read the goals."
+    },
+    {
+      "heading": "Claims, proof and market framing",
+      "content": "Claims. The approved claims and the certification sheet apply as usual. Only the status of Leashgate changes. Proof. There is no customer proof for Leashgate and there is no lab figure for it. Do not name early access partners, quote them or count them. Do not quote a latency figure, since we have none. The Lowmoor Credit Union and Ostler Grocers results belong to other products and do not go on Leashgate assets as if they were Leashgate results. A thin page beats a borrowed number. Market framing. Use figures from the Wickhold Containment Report 2026, or a fresh third-party statistic with its source. Web research is welcome where it helps, under the usual rules for third-party figures."
+    },
+    {
+      "heading": "Pricing, support, roadmap and competitors",
+      "content": "Pricing. Pricing after early access is not settled, and I am handling the pricing page separately before launch. Do not state a price or a tier for Leashgate in any asset. Link to the pricing page where a reader needs it, and send buying questions to sales. Support terms. Say nothing about SLAs or support levels. Those live in the order form. Roadmap. Describe what the product does on launch day. No future features, no adapter lists, no dates beyond the launch itself. Competitors. Leashgate stays out of competitive positioning. No comparisons and no comparison blog in this campaign."
+    },
+    {
+      "heading": "Code and image requirements",
+      "content": "Code in copy. Excerpts of ToolCallPolicy rules are welcome. Leave out the apiVersion line, build numbers and the install command. The early access versions do not carry over, and Kofi adds the final block at the paste test. Images. Use the library. Design's console screens for launch will not be ready in time, and the Leashgate console screens in the library carry the early access pill, which is not to be cropped off. Keep them off every asset in this campaign. The landing page hero is a working room."
+    },
+    {
+      "heading": "Draft handling and routing",
+      "content": "Maren's post. It is a draft for her to rewrite. Do not schedule it, and do not assume a yes. Questions come to me. Anything that touches the claims goes to Priit first."
+    }
+  ],
+  "constraints": [
+    "Internal until launch day; no external mention of general availability or the date before 2027-01-26. No teasers, \"coming soon\" or countdowns. Existing early access copy already in market stays unchanged until launch day.",
+    "For these assets, use \"Wickhold Leashgate\" on first mention and \"Leashgate\" thereafter, with no early access label. On launch day, it is correct to say Wickhold Leashgate is generally available. This brief supersedes other documents only where they conflict on Leashgate's status; they otherwise remain in force.",
+    "General availability changes product status, not product scope. Describe launch-day scope only: agent identity, tool-call policy, blast radius report, gateway as a sidecar or shared Deployment, agents making tool calls over HTTP or MCP, and approvals answerable from Slack. The optional Quenchline containment tie-in is off by default and requires Quenchline on the node.",
+    "The 60 demo requests by March 31, 2027 and all other goals and metrics are internal and must not appear in copy.",
+    "Use the required outcome wording exactly: Leashgate \"limits what a compromised agent can do\". Treat an agent as a workload with credentials and give it a boundary; discuss tool calls in a cluster, not the future of work.",
+    "For platform-lead material, include defaultAction: deny, state that the agent framework stays the same, and plainly explain that Leashgate fails closed: a gateway outage stops the agent's tools and teams need to plan for that.",
+    "For security-leader material, lead with the decision they need to make; state the need to know the blast radius before an agent goes live and that every decision leaves a record readable in a security review. No humor for this audience.",
+    "State plainly that Leashgate sees tool calls but does not read or judge prompts; it runs only on Kubernetes; frameworks calling tools in-process with no network hop are out of scope.",
+    "Approved claims and the certification sheet apply as usual; only Leashgate's status changes. No customer proof, lab figure, early access partner names, quotes or counts, or latency figures. Do not present Lowmoor Credit Union or Ostler Grocers results as Leashgate results.",
+    "For market framing, use figures from the Wickhold Containment Report 2026 or a fresh third-party statistic with its source, following usual rules for third-party figures.",
+    "Do not state a Leashgate price or tier. Link to the pricing page where needed and send buying questions to sales. Do not mention SLAs or support levels.",
+    "Describe launch-day product behavior only. No future features, adapter lists or dates beyond the launch itself. No competitive positioning, comparisons or comparison blog.",
+    "ToolCallPolicy excerpts are permitted; omit the apiVersion line, build numbers and install command. Early access code versions do not carry over; Kofi adds the final block at the paste test.",
+    "Use library imagery. Do not use Leashgate console screens from the library on any campaign asset; their early access pill must not be cropped off. The landing page hero is a working room.",
+    "Owned channels only. The release note, press and sales enablement are outside this campaign. Keep platform and security leadership email lists separate. Customers receive news first through the technical customer list.",
+    "The campaign-plan review is November 6, 2026, with Ilse's agreement and Noor's OK on audience and goal. Questions go to Ilse; anything touching claims goes to Priit first."
+  ],
+  "assets": [
+    {
+      "id": "asset-01",
+      "format": "landing_page",
+      "audience": "Platform leads",
+      "purpose": "Replace the early access product page with the general-availability product page for platform leads.",
+      "timing": "2027-01-26; no end date.",
+      "sender_or_byline": "Web team",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "explicit",
+          "quote": "Landing page, replacing the early access page at https://wickhold.example/leashgate"
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Platform leads"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "The landing page is the product page"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "2027-01-26"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "The landing page is the product page, so it has no end date."
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "explicit",
+          "quote": "Web team"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Use the existing product layout. Its main action is \"Book a demo\", with a secondary link to the docs for readers who are not ready for a form."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "A visitor arrives from one of the emails, a social post or the docs, and needs to see what the product does and how it fails."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "The landing page hero is a working room."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "2027-02-09\nTwo-week check on the landing page form"
+        }
+      ],
+      "constraints": [
+        "Replace the early access page at https://wickhold.example/leashgate.",
+        "Use the existing product layout; main action is \"Book a demo\" and secondary link goes to docs for readers not ready for a form.",
+        "Show what the product does and how it fails; the visitor may arrive from an email, social post or docs.",
+        "The landing-page hero is a working room. No end date; check the form two weeks after launch, on 2027-02-09."
+      ]
+    },
+    {
+      "id": "asset-02",
+      "format": "email",
+      "audience": "Customers, technical list",
+      "purpose": "Announce general availability to existing customers first, through the technical customer list.",
+      "timing": "2027-01-26",
+      "sender_or_byline": "Wickhold",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "explicit",
+          "quote": "Email: product announcement"
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Customers, technical list"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "Email: product announcement"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "Existing customers get the news first, through the technical customer list."
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "2027-01-26"
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "explicit",
+          "quote": "Wickhold"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Several asked about agents at Slow Burn Summit, and most were not running any in production yet, so do not write as if they all are."
+        }
+      ],
+      "constraints": [
+        "Send to the technical customer list; customers hear the news first on launch day.",
+        "Do not write as if all customers have agents running in production."
+      ]
+    },
+    {
+      "id": "asset-03",
+      "format": "linkedin",
+      "audience": "Mixed",
+      "purpose": "Company-page launch announcement for a mixed audience, including security leaders who get the launch post.",
+      "timing": "2027-01-26",
+      "sender_or_byline": "Company page",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "explicit",
+          "quote": "LinkedIn: launch post, company page"
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Mixed"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "LinkedIn: launch post, company page"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "Security leaders get their own email and the launch post."
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "2027-01-26"
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "explicit",
+          "quote": "Company page"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Security leaders get their own email and the launch post."
+        }
+      ],
+      "constraints": [
+        "Company-page launch post on launch day; the launch post is also the security leaders' launch post."
+      ]
+    },
+    {
+      "id": "asset-04",
+      "format": "linkedin",
+      "audience": "Mixed",
+      "purpose": "Provide a launch-post draft for Maren to rewrite and decide whether to run.",
+      "timing": "2027-01-26",
+      "sender_or_byline": "Maren",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "explicit",
+          "quote": "LinkedIn: launch post for Maren's profile."
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Mixed"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "A draft only. She rewrites it and decides whether it runs"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "2027-01-26"
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "explicit",
+          "quote": "Maren"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "A draft only. She rewrites it and decides whether it runs"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Maren's post. It is a draft for her to rewrite. Do not schedule it, and do not assume a yes."
+        }
+      ],
+      "constraints": [
+        "Draft only for Maren to rewrite and decide whether it runs. Do not schedule it or assume approval."
+      ]
+    },
+    {
+      "id": "asset-05",
+      "format": "x",
+      "audience": "Platform engineers",
+      "purpose": "Announce the launch on X.",
+      "timing": "2027-01-26",
+      "sender_or_byline": "Main account",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "explicit",
+          "quote": "X: launch post"
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Platform engineers"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "X: launch post"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "2027-01-26"
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "explicit",
+          "quote": "Main account"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "2027-01-21\nX posts to Kofi for review and scheduling"
+        }
+      ],
+      "constraints": [
+        "Send X posts to Kofi for review and scheduling on 2027-01-21."
+      ]
+    },
+    {
+      "id": "asset-06",
+      "format": "blog",
+      "audience": "Platform leads and security leaders",
+      "purpose": "Explain what general availability covers, how Leashgate works and what it leaves out.",
+      "timing": "2027-01-27",
+      "sender_or_byline": "Dov",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "explicit",
+          "quote": "Blog: launch post."
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Platform leads and security leaders"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "What general availability covers, how it works, what it leaves out"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "2027-01-27"
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "explicit",
+          "quote": "Dov"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "2026-12-11\nOutlines for both blog posts to Kofi"
+        }
+      ],
+      "constraints": [
+        "Cover what general availability includes, how the product works and what it leaves out.",
+        "Send the outline to Kofi on 2026-12-11."
+      ]
+    },
+    {
+      "id": "asset-07",
+      "format": "email",
+      "audience": "Platform list",
+      "purpose": "Announce general availability to prospects on the platform list.",
+      "timing": "2027-01-27",
+      "sender_or_byline": "Wickhold",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "explicit",
+          "quote": "Email: announcement for prospects"
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Platform list"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "Email: announcement for prospects"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "2027-01-27"
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "explicit",
+          "quote": "Wickhold"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "2027-01-27\nLaunch post and prospect emails, one day after customers and after the release note"
+        }
+      ],
+      "constraints": [
+        "Send on 2027-01-27, one day after customers and after the release note. Keep the platform audience separate from the security leadership list."
+      ]
+    },
+    {
+      "id": "asset-08",
+      "format": "email",
+      "audience": "Security leadership list",
+      "purpose": "Announce general availability to security leadership prospects and point to the launch post.",
+      "timing": "2027-01-27",
+      "sender_or_byline": "Wickhold",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "explicit",
+          "quote": "Email: announcement for prospects. Points to the launch post"
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Security leadership list"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "Points to the launch post"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "2027-01-27"
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "explicit",
+          "quote": "Wickhold"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Platform and security leadership are separate email lists, and they stay separate here."
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "2027-01-27\nLaunch post and prospect emails, one day after customers and after the release note"
+        }
+      ],
+      "constraints": [
+        "Keep the security leadership list separate from the platform list; point to the launch post.",
+        "Send on 2027-01-27, one day after customers and after the release note. Apply the security-leader message and no-humor constraint."
+      ]
+    },
+    {
+      "id": "asset-09",
+      "format": "linkedin",
+      "audience": "Security leaders",
+      "purpose": "Explain the blast radius report's role in a security review.",
+      "timing": "2027-01-28",
+      "sender_or_byline": "Company page",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "explicit",
+          "quote": "LinkedIn: the blast radius report in a security review"
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Security leaders"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "the blast radius report in a security review"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "2027-01-28"
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "explicit",
+          "quote": "Company page"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "2027-01-28\nSecond company LinkedIn post"
+        }
+      ],
+      "constraints": [
+        "Second company LinkedIn post. Apply the security-leader message and no-humor constraint."
+      ]
+    },
+    {
+      "id": "asset-10",
+      "format": "blog",
+      "audience": "Platform engineers",
+      "purpose": "Provide a how-to for writing a first tool-call policy.",
+      "timing": "2027-02-02; move to 2027-02-03 if a release note lands on 2027-02-02.",
+      "sender_or_byline": "Kofi",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "explicit",
+          "quote": "Blog: how-to, writing a first tool-call policy"
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Platform engineers"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "writing a first tool-call policy"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "2027-02-02"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "Kofi moves both to February 3 if a release note lands on the 2nd"
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "explicit",
+          "quote": "Kofi"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "2026-12-11\nOutlines for both blog posts to Kofi"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Excerpts of ToolCallPolicy rules are welcome. Leave out the apiVersion line, build numbers and the install command."
+        }
+      ],
+      "constraints": [
+        "Send the outline to Kofi on 2026-12-11.",
+        "ToolCallPolicy rule excerpts are welcome; omit the apiVersion line, build numbers and install command. Kofi adds the final block at the paste test.",
+        "Publish on 2027-02-02, but move to February 3 if a release note lands on February 2."
+      ]
+    },
+    {
+      "id": "asset-11",
+      "format": "x",
+      "audience": "Platform engineers",
+      "purpose": "Create an X post for the first-tool-call-policy how-to.",
+      "timing": "2027-02-02; move to 2027-02-03 if a release note lands on 2027-02-02.",
+      "sender_or_byline": "Main account",
+      "provenance": [
+        {
+          "field": "format",
+          "origin": "explicit",
+          "quote": "X: the how-to post"
+        },
+        {
+          "field": "audience",
+          "origin": "explicit",
+          "quote": "Platform engineers"
+        },
+        {
+          "field": "purpose",
+          "origin": "explicit",
+          "quote": "X: the how-to post"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "2027-02-02"
+        },
+        {
+          "field": "timing",
+          "origin": "explicit",
+          "quote": "Kofi moves both to February 3 if a release note lands on the 2nd"
+        },
+        {
+          "field": "sender_or_byline",
+          "origin": "explicit",
+          "quote": "Main account"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "2027-01-21\nX posts to Kofi for review and scheduling"
+        },
+        {
+          "field": "constraints",
+          "origin": "explicit",
+          "quote": "Kofi moves both to February 3 if a release note lands on the 2nd"
+        }
+      ],
+      "constraints": [
+        "Send X posts to Kofi for review and scheduling on 2027-01-21.",
+        "Support the how-to blog on writing a first tool-call policy.",
+        "Publish on 2027-02-02, but move to February 3 if a release note lands on February 2."
+      ]
+    }
+  ],
+  "unknowns": [],
+  "issues": []
+}
+```
+
+## 4. campaign_agent_step
+
+Run `ed3c8b6a-e038-4edc-9906-a40a0c765f9c`; gpt-6-luna; completed; 1854 ms; input 5881; output 29; cached 5646; estimated cost 9.7185e-05.
+
+- Input 1, user: 18,388 chars; explicit boundary: False. conversation (9,054 chars), request (9,026 chars), state (216 chars), brand_preferences (2 chars), current_decisions (2 chars)
+- Input 2, reasoning: 0 chars; explicit boundary: True. 
+- Input 3, function_call: 0 chars; explicit boundary: False. 
+- Input 4, function_call_output: 0 chars; explicit boundary: False. 
+
+Schema SHA256: `74234e98afe7498f`. Serialized request: 31,334 chars.
+
+Tool selections: [{"id": "fc_079bda65232d8ba6016aeeb78ab73c87d29ad8d2e1af5913b2", "type": "function_call", "status": "completed", "arguments": "{\"addition\":false}", "call_id": "call_pKUed4qkKklqKKEi5HCZnjow", "name": "retrieve_context"}]
+
+## 5. plan_retrieval
+
+Run `550de905-f52d-4ec5-92df-442de5047bdb`; gpt-6-luna; completed; 9412 ms; input 6743; output 1074; cached 0; estimated cost 0.0013798.
+
+- Input 1, input: 24,498 chars; explicit boundary: False. requirements (24,480 chars)
+
+Schema SHA256: `1363fe9ba73d2a60`. Serialized request: 29,612 chars.
+
+Actual structured output:
+
+```json
+{
+  "analysis": {
+    "topic": "Wickhold Leashgate general availability status, launch scope, and applicable messaging",
+    "products": [
+      "Wickhold Leashgate"
+    ],
+    "audience": "Platform leads and engineers; security leaders and security architects; existing customers on the technical customer list; platform and security leadership prospects on separate lists",
+    "channels": [
+      "Website / landing page",
+      "Email",
+      "LinkedIn",
+      "X",
+      "Blog"
+    ],
+    "requested_assets": [
+      {
+        "kind": "Landing page",
+        "channel": "Website",
+        "count": 1
+      },
+      {
+        "kind": "Email",
+        "channel": "Email",
+        "count": 3
+      },
+      {
+        "kind": "LinkedIn post",
+        "channel": "LinkedIn",
+        "count": 3
+      },
+      {
+        "kind": "X post",
+        "channel": "X",
+        "count": 2
+      },
+      {
+        "kind": "Blog post",
+        "channel": "Blog",
+        "count": 2
+      }
+    ],
+    "unknowns": [
+      "The intended audience mix for the two mixed-audience LinkedIn launch-post drafts is not further specified."
+    ]
+  },
+  "queries": [
+    {
+      "id": "q1",
+      "purpose": "topic",
+      "query": "Wickhold Leashgate general availability status launch date early access label release notes",
+      "reason": "Check stored launch-status and naming evidence, including the status-specific precedence described in the brief."
+    },
+    {
+      "id": "q2",
+      "purpose": "product",
+      "query": "Leashgate product overview agent identity tool-call policy blast radius report HTTP MCP gateway",
+      "reason": "Verify launch-day product scope, behavior, deployment modes, integrations, and exclusions against product documentation."
+    },
+    {
+      "id": "q3",
+      "purpose": "claims",
+      "query": "Leashgate approved claims certification sheet exact wording limitations proof restrictions",
+      "reason": "Check approved wording and applicable claim, certification, proof, and evidence restrictions without presuming claims are approved."
+    },
+    {
+      "id": "q4",
+      "purpose": "audience",
+      "query": "platform leads security leaders audience needs failure behavior security review Leashgate",
+      "reason": "Retrieve audience-specific decision needs and messaging distinctions for platform and security materials."
+    },
+    {
+      "id": "q5",
+      "purpose": "voice",
+      "query": "Wickhold messaging house pillar 3 brand voice plain technical Leashgate",
+      "reason": "Find the brand's approved voice and messaging guidance relevant to clear, technical launch communications."
+    }
+  ]
+}
+```
+
+## 6. campaign_rule_documents
+
+Run `8421fb69-6c23-4f6d-94ab-41691c0358f4`; gpt-6-luna; completed; 22473 ms; input 63169; output 2408; cached 0; estimated cost 0.00910005.
+
+- Input 1, input: 251,004 chars; explicit boundary: False. documents (245,417 chars), authority (5,280 chars), required_roles (89 chars)
+
+Schema SHA256: `46ed0c51ef967ad4`. Serialized request: 260,267 chars.
+
+Actual structured output:
+
+```json
+{"assignments":[{"role":"brand","document_id":"eef8eb46-89d3-4ec8-a24c-a38de8f5d8cf","scope_quote":"# Wickhold brand guidelines 2026"},{"role":"brand","document_id":"50ed5d58-65d8-4f4e-9abc-ce05b6e9085f","scope_quote":"# Capitalization + product names (quick sheet)"},{"role":"claims","document_id":"5909b698-1e5d-4b27-935e-510da58fce38","scope_quote":"# Approved claims, 2026"},{"role":"claims","document_id":"2f3ee38f-bb53-4b44-925d-cf528b0928c9","scope_quote":"Certification status: sheet kept by Priit Salonen. Last checked 2 October 2026."},{"role":"claims","document_id":"7fc1e082-20b9-407d-9c6e-9f06e0b4688a","scope_quote":"## Regional rules: EU and UK copy"},{"role":"claims","document_id":"572d4883-d166-4c88-8ab0-4e320c64ca89","scope_quote":"# Customer logo and quote policy"},{"role":"voice","document_id":"17287b9b-a53b-4506-b269-2d0c53d38767","scope_quote":"# Wickhold voice and tone"},{"role":"voice","document_id":"06fc2e42-e44a-4d3a-9bdf-1663aae5bc1e","scope_quote":"# Word list"},{"role":"voice","document_id":"16816f25-0ebc-4abb-9add-c3213aced06d","scope_quote":"# Content style guide"},{"role":"voice","document_id":"08c4dd11-4d3a-4af5-aa08-98241e399713","scope_quote":"## CTA format for all channels"},{"role":"imagery","document_id":"7393a98e-d420-4e3a-a620-f4bf13834b9d","scope_quote":"# Visual rules common to every image"},{"role":"imagery","document_id":"4894ce77-85f4-41f8-b34d-769eb2701e6c","scope_quote":"# Image accessibility"},{"role":"imagery","document_id":"7497d005-7da3-47a3-a256-3f4b1bf0634f","scope_quote":"# Photography"},{"role":"imagery","document_id":"13c289aa-9a64-457b-9ce0-be4aa4df6b93","scope_quote":"# Illustration"},{"role":"imagery","document_id":"c1cc11c7-1db0-4e68-a9a6-0a469f1fca05","scope_quote":"# Product UI screenshots"},{"role":"imagery","document_id":"939106a1-d5c9-4b97-8223-57f126205e3b","scope_quote":"# Social graphics"},{"role":"imagery","document_id":"01702e89-cf68-4ffb-a98e-a94d7e2c0a0e","scope_quote":"# Data visualization"},{"role":"imagery","document_id":"ee1e2860-3009-43a3-a2f8-38f054e36600","scope_quote":"# Blog hero images"},{"role":"imagery","document_id":"429a9c30-b7a8-45e5-bfce-990e5b7a07c2","scope_quote":"# Email header images"},{"role":"imagery","document_id":"3c2b03a2-3b62-473e-a422-77133a7f23b9","scope_quote":"# Landing page imagery"},{"role":"imagery","document_id":"beef8954-7afc-41b9-af69-a34fc60372d1","scope_quote":"# LinkedIn images"},{"role":"imagery","document_id":"3597d3e5-f2c8-40d8-9a25-b73b2f8b6f9e","scope_quote":"# X images"},{"role":"email","document_id":"ff395e4b-44dd-4972-9124-e1dfbb83733f","scope_quote":"# Email playbook"},{"role":"linkedin","document_id":"af2f7190-800c-4853-bae8-1c9d3d57bed5","scope_quote":"# LinkedIn playbook"},{"role":"x","document_id":"60c4bd29-2218-48dc-94dd-f8886ac3f1b4","scope_quote":"X playbook\n=========="},{"role":"blog","document_id":"67b41992-5f13-4ac9-9ced-cad9fa8c6efb","scope_quote":"# Writing for the Wickhold blog"},{"role":"landing_page","document_id":"ab4b093b-d68f-4576-9f75-861d2e99a564","scope_quote":"# Landing pages"}]}
+```
+
+## 7. campaign_rule_limits
+
+Run `4ddd7dfa-8c95-4e6e-b592-9f2c7a8de0a5`; gpt-6-luna; completed; 8047 ms; input 3569; output 727; cached 0; estimated cost 0.00080955.
+
+- Input 1, input: 11,556 chars; explicit boundary: False. passages (11,515 chars), channel (14 chars)
+
+Schema SHA256: `3e9fe30408693398`. Serialized request: 13,803 chars.
+
+Actual structured output:
+
+```json
+{"limits":[{"field":"page","unit":"words","minimum":null,"maximum":500,"chunk_id":"333c68ed-7bd9-491d-9020-93f7cb39c911","quote":"A landing page is 500 words at most."},{"field":"page","unit":"words","minimum":null,"maximum":480,"chunk_id":"c1079d42-ff19-496b-9bbf-e72c382dc03d","quote":"| **Total** | **480** | Leaves 20 words of slack |"}]}
+```
+
+## 8. campaign_rule_limits
+
+Run `73b57995-94e2-4969-a248-99b79d403341`; gpt-6-luna; completed; 4829 ms; input 3603; output 407; cached 0; estimated cost 0.0006538.
+
+- Input 1, input: 12,307 chars; explicit boundary: False. passages (12,273 chars), channel (7 chars)
+
+Schema SHA256: `3e9fe30408693398`. Serialized request: 14,513 chars.
+
+Actual structured output:
+
+```json
+{"limits":[{"field":"body","unit":"words","minimum":null,"maximum":220,"chunk_id":"60fd8029-020c-42ea-8ffa-c11621d95fe2","quote":"| Email length | 220 words at most, body text, including the sign-off |"},{"field":"subject","unit":"characters","minimum":null,"maximum":48,"chunk_id":"60fd8029-020c-42ea-8ffa-c11621d95fe2","quote":"| Subject line | 48 characters at most, counted with spaces |"}]}
+```
+
+## 9. campaign_rule_limits
+
+Run `b4f29f6a-c41d-4384-9dfb-4e92ca8e0f26`; gpt-6-luna; completed; 2486 ms; input 2845; output 137; cached 0; estimated cost 0.00042405.
+
+- Input 1, input: 9,126 chars; explicit boundary: False. passages (9,089 chars), channel (10 chars)
+
+Schema SHA256: `3e9fe30408693398`. Serialized request: 11,220 chars.
+
+Actual structured output:
+
+```json
+{"limits":[{"field":"body","unit":"words","minimum":null,"maximum":180,"chunk_id":"e4d55076-3313-4cf2-a4af-45a0ab945f2f","quote":"A LinkedIn post is 180 words at most. Count everything, including the link line."}]}
+```
+
+## 10. campaign_rule_limits
+
+Run `361fbf02-f434-41a0-b9d0-185e7eb8d32b`; gpt-6-luna; completed; 4164 ms; input 1483; output 305; cached 0; estimated cost 0.0003378.
+
+- Input 1, input: 4,776 chars; explicit boundary: False. passages (4,746 chars), channel (3 chars)
+
+Schema SHA256: `3e9fe30408693398`. Serialized request: 6,632 chars.
+
+Actual structured output:
+
+```json
+{"limits":[{"field":"body","unit":"characters","minimum":null,"maximum":240,"chunk_id":"b463cb57-17ad-45be-a529-05c9e37501e7","quote":"An X post from any Wickhold account is 240 characters at most."}]}
+```
+
+## 11. campaign_rule_limits
+
+Run `779b234d-60c9-46e2-93d3-ade8a4d83dc0`; gpt-6-luna; completed; 4556 ms; input 3530; output 340; cached 0; estimated cost 0.000611175.
+
+- Input 1, input: 11,823 chars; explicit boundary: False. passages (11,790 chars), channel (6 chars)
+
+Schema SHA256: `3e9fe30408693398`. Serialized request: 14,025 chars.
+
+Actual structured output:
+
+```json
+{"limits":[{"field":"body","unit":"words","minimum":900,"maximum":1400,"chunk_id":"2dfe4ee1-b5b7-475f-aa8a-47e4ee921cb3","quote":"Blog posts run 900 to 1,400 words. That range counts the body, including captions and code comments you wrote yourself, but not the code output you pasted."}]}
+```
+
+## 12. campaign_conflict_find
+
+Run `7a68869a-cd7c-4856-a447-11ba1110283d`; gpt-6-luna; completed; 49217 ms; input 62183; output 4765; cached 0; estimated cost 0.0101553.
+
+- Input 1, user: 200,681 chars; explicit boundary: True. passages (200,622 chars)
+- Input 2, developer: 91 chars; explicit boundary: False. review_task (74 chars)
+- Input 3, user: 33,614 chars; explicit boundary: False. requirements (24,480 chars), conversation (9,054 chars), candidate (4 chars), current_decisions (2 chars)
+
+Schema SHA256: `335c10c8c7331627`. Serialized request: 258,981 chars.
+
+Actual structured output:
+
+```json
+{"conflicts":[{"explanation":"For the how-to X post (asset-11), the brief asks for review and scheduling, while the X playbook says only launch posts are scheduled and other posts are posted live. The launch X post (asset-05) fits the playbook’s launch exception; asset-11 does not. The campaign needs to choose whether to follow the live-post rule or seek an exception for scheduling.","grounding":[{"origin":"user","source_ref":null,"quote":"2027-01-21\nX posts to Kofi for review and scheduling"},{"origin":"source","source_ref":"source_106","quote":"Launch posts are scheduled. Everything else is posted live by whoever is on the DevRel rota"}],"requires_user_decision":true,"treatment":"Resolve the scheduling approach for asset-11 before finalizing its workflow. If following the playbook, use the January 21 review without scheduling and have the DevRel rota post live on the selected date. If scheduling is important, seek an explicit channel-rule exception before scheduling.","statements":["Brief: X posts are to be sent to Kofi for review and scheduling on January 21.","X playbook: only launch posts are scheduled; other posts are posted live by the DevRel rota."],"source_refs":["source_106"],"affected_asset_ids":["asset-11"],"decision_type":"campaign_choice","question":"How should the how-to X post be handled, given the playbook’s live-post rule for non-launch posts?","options":["Follow the playbook: review in advance, then have the DevRel rota post live on February 2 or 3 as applicable.","Seek an explicit exception to schedule the post; do not schedule it unless that exception is granted."]},{"explanation":"An older product-overview passage says Leashgate “prevents prompt injection from becoming an incident,” while the brief says the product does not read or judge prompts and requires the narrower outcome wording. The approved-claims list supplies that exact outcome wording. No user decision is needed: use the brief’s required wording, do not carry the broader overview claim into campaign copy, and state the product’s limits as required.","grounding":[{"origin":"user","source_ref":null,"quote":"The outcome statement. Leashgate \"limits what a compromised agent can do\". Use those words exactly."},{"origin":"source","source_ref":"source_153","quote":"Leashgate prevents prompt injection from becoming an incident."},{"origin":"source","source_ref":"source_176","quote":"It does not read or judge the model's prompts, reasoning or output. It sees tool calls and their arguments."}],"requires_user_decision":false,"treatment":"Use the exact approved outcome “limits what a compromised agent can do” and the brief’s prompt-reading limitation. Do not use the broader “prevents prompt injection from becoming an incident” claim; the approved-claims rule says unlisted claims are not approved, and the approved wording is available.","statements":["Brief: use the exact outcome wording “limits what a compromised agent can do” and say Leashgate does not read or judge prompts.","Product overview: “Leashgate prevents prompt injection from becoming an incident.”","Product overview: Leashgate sees tool calls and does not read or judge prompts."],"source_refs":["source_78","source_88","source_153","source_176"],"affected_asset_ids":["asset-01","asset-02","asset-03","asset-04","asset-05","asset-06","asset-07","asset-08","asset-09","asset-10","asset-11"],"decision_type":"claim_wording","question":"No user decision is needed: should campaign copy use the approved, narrower outcome wording rather than the broader overview claim?","options": ["Use “limits what a compromised agent can do” and omit the broader claim. " ,"Do not use either outcome claim until the wording is reviewed."]}],"limitations":["This is a campaign-planning review, not publication authorization. Complete applicable final copy, brand, imagery-rights and channel checks before publication; these checks do not prevent planning.","The brief excludes Leashgate customer proof and latency figures. Do not infer or introduce either from evidence about other products."],"blocking_gaps":[]}
+```
+
+Assessment: verify cited sources are in this batch, and reconcile equivalent findings across batches before asking questions. Cache reuse depends on identical passage membership/order, instructions and schema.
+
+## 13. campaign_conflict_find
+
+Run `87207fd3-9b69-4294-b5cb-f130bb981bc1`; gpt-6-luna; completed; 51659 ms; input 62113; output 5127; cached 0; estimated cost 0.01032755.
+
+- Input 1, user: 200,519 chars; explicit boundary: True. passages (200,490 chars)
+- Input 2, developer: 91 chars; explicit boundary: False. review_task (74 chars)
+- Input 3, user: 33,614 chars; explicit boundary: False. requirements (24,480 chars), conversation (9,054 chars), candidate (4 chars), current_decisions (2 chars)
+
+Schema SHA256: `335c10c8c7331627`. Serialized request: 259,148 chars.
+
+Actual structured output:
+
+```json
+{
+  "conflicts": [
+    {
+      "explanation": "The brief identifies this as a product page and specifies a working-room hero. The landing-page imagery guidance says to use product UI for a page about a product or capability, reserving a working room for a page about a role or problem when there is no single screen to show. The brief also rules out the available Leashgate console screens, so the planned hero cannot simply use those screens to follow the guidance.",
+      "grounding": [
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "The landing page is the product page"
+        },
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "The landing page hero is a working room."
+        },
+        {
+          "origin": "source",
+          "source_ref": "source_256",
+          "quote": "Use product UI when the page is about a product or a capability. Use a working room when the page speaks to a role or a problem and there is no single screen to show."
+        },
+        {
+          "origin": "source",
+          "source_ref": "source_256",
+          "quote": "A landing page hero shows product UI or a working room. Those two options only."
+        }
+      ],
+      "requires_user_decision": true,
+      "treatment": "Resolve the hero direction before design. The existing Leashgate screens are not a ready alternative: the brief excludes them because they carry the early access pill, and says the new screens will not be ready in time. If keeping the working-room hero, document the needed Brand exception; otherwise revise the hero direction and its image constraints to allow compliant product UI.",
+      "statements": [
+        "The landing page is the product page and its hero must be a working room.",
+        "For a product page, the visual guidance directs the hero to product UI."
+      ],
+      "source_refs": [
+        "source_256"
+      ],
+      "affected_asset_ids": [
+        "asset-01"
+      ],
+      "decision_type": "other",
+      "question": "How should the landing-page hero rule be resolved for this product page?",
+      "options": [
+        "Keep the working-room hero and obtain a documented campaign exception from Brand.",
+        "Change the hero to compliant, current Leashgate product UI and revise the brief’s image constraints or timing accordingly.",
+        "Reframe the hero as role- or problem-led and ask Brand to confirm that the working-room option applies to this page."
+      ]
+    }
+  ],
+  "limitations": [
+    "The supplied source passages do not substantiate the brief’s statements that approvals can be answered from Slack or that the customer’s agent framework stays the same. Treat those as claims needing factual confirmation before they are used as established product facts; they do not prevent planning with conditional wording or omission pending confirmation.",
+    "No specific library image or its metadata is supplied. Before selecting a working-room image, check its usage rights, restrictions, dimensions, and placement suitability as required by the image-library guidance.",
+    "The supplied evidence does not independently establish the future general-availability date. The brief explicitly says Product and Legal confirmed it and scopes that status change to these campaign assets; apply that planning evidence without seeking another approval document. Complete the scheduled claims and Brand reviews before publication."
+  ],
+  "blocking_gaps": []
+}
+```
+
+Assessment: verify cited sources are in this batch, and reconcile equivalent findings across batches before asking questions. Cache reuse depends on identical passage membership/order, instructions and schema.
+
+## 14. campaign_conflict_find
+
+Run `ceeb88ee-1bca-44ab-b7cc-710e8f760636`; gpt-6-luna; completed; 49484 ms; input 111735; output 5063; cached 3199; estimated cost 0.016130415.
+
+- Input 1, user: 397,492 chars; explicit boundary: True. passages (397,418 chars)
+- Input 2, developer: 91 chars; explicit boundary: False. review_task (74 chars)
+- Input 3, user: 33,614 chars; explicit boundary: False. requirements (24,480 chars), conversation (9,054 chars), candidate (4 chars), current_decisions (2 chars)
+
+Schema SHA256: `335c10c8c7331627`. Serialized request: 464,125 chars.
+
+Actual structured output:
+
+```json
+{
+  "conflicts": [
+    {
+      "explanation": "The brief calls this a product page and specifies a working-room hero. The landing-page imagery guidance says product pages should use product UI and specifically lists the Leashgate page as a product-UI hero. The brief also rules out the available Leashgate screens, so the plan needs a decision about whether to keep the working-room direction or change the imagery approach.",
+      "grounding": [
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "The landing page is the product page"
+        },
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "The landing page hero is a working room."
+        },
+        {
+          "origin": "source",
+          "source_ref": "source_256",
+          "quote": "Use product UI when the page is about a product or a capability."
+        }
+      ],
+      "requires_user_decision": true,
+      "treatment": "Choose whether to retain the brief’s working-room hero, accepting that it differs from the product-page guidance, or use product UI instead. If choosing product UI, the brief’s restriction on the existing early-access screens still applies; a suitable current screen would need to be available.",
+      "statements": [
+        "Brief: The landing page is the product page, and its hero is a working room.",
+        "Guidance: Use product UI when the page is about a product or capability."
+      ],
+      "source_refs": [
+        "source_256"
+      ],
+      "affected_asset_ids": [
+        "asset-01"
+      ],
+      "decision_type": "campaign_choice",
+      "question": "For the Leashgate product page, should the plan keep the specified working-room hero or use a product-UI hero as the landing-page guidance directs?",
+      "options": [
+        "Keep the working-room hero as specified in the brief.",
+        "Use a current product-UI hero instead, if suitable launch-day UI is available.",
+        "Keep the working-room hero and request a documented exception to the product-page imagery rule."
+      ]
+    },
+    {
+      "explanation": "The X playbook allows launch posts to be scheduled but says other posts are published live. The brief’s January 21 scheduling instruction covers the X posts generally, including the February 2 how-to post, which is not identified as a launch post. The launch post can remain scheduled; the how-to post needs a separate handling decision.",
+      "grounding": [
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "2027-01-21\nX posts to Kofi for review and scheduling"
+        },
+        {
+          "origin": "source",
+          "source_ref": "source_106",
+          "quote": "Launch posts are scheduled. Everything else is posted live by whoever is on the DevRel rota"
+        }
+      ],
+      "requires_user_decision": true,
+      "treatment": "The launch X post can be scheduled under the playbook. Decide whether the how-to X post should follow the brief’s scheduling instruction or the playbook’s live-posting rule for non-launch posts; Kofi’s review can occur either way.",
+      "statements": [
+        "Brief timeline: X posts go to Kofi for review and scheduling on January 21.",
+        "X playbook: Launch posts are scheduled; everything else is posted live by the DevRel rota."
+      ],
+      "source_refs": [
+        "source_106"
+      ],
+      "affected_asset_ids": [
+        "asset-11"
+      ],
+      "decision_type": "campaign_choice",
+      "question": "Should the February 2 how-to X post be scheduled as the brief’s timeline implies, or posted live under the X playbook?",
+      "options": [
+        "Schedule the how-to post as planned.",
+        "Have Kofi review it on January 21, then publish it live on February 2 or 3.",
+        "Remove the X how-to post from this campaign."
+      ]
+    }
+  ],
+  "limitations": [
+    "No candidate copy or selected image was supplied, so final claim wording, image choice, image-record restrictions and visual fit cannot be assessed.",
+    "This is a planning review, not publication authorization. Complete the applicable claims, brand and asset checks before publication."
+  ],
+  "blocking_gaps": []
+}
+```
+
+Assessment: verify cited sources are in this batch, and reconcile equivalent findings across batches before asking questions. Cache reuse depends on identical passage membership/order, instructions and schema.
+
+## 15. campaign_conflict_check
+
+Run `f44d5d1c-c6e8-41a5-9305-63a0291fd2aa`; gpt-6-luna; completed; 42161 ms; input 66164; output 3793; cached 3199; estimated cost 0.00979904.
+
+- Input 1, user: 206,392 chars; explicit boundary: True. passages (206,333 chars)
+- Input 2, developer: 564 chars; explicit boundary: False. review_task (547 chars)
+- Input 3, user: 44,571 chars; explicit boundary: False. requirements (24,480 chars), proposed_review (10,801 chars), conversation (9,054 chars), candidate (4 chars), current_decisions (2 chars)
+
+Schema SHA256: `335c10c8c7331627`. Serialized request: 276,876 chars.
+
+Actual structured output:
+
+```json
+{
+  "conflicts": [
+    {
+      "explanation": "The brief calls for the how-to X post to be scheduled, while the X playbook reserves scheduling for launch posts and says other posts are published live. The launch-day X post fits the playbook exception; the February how-to post does not. These instructions cannot both be followed for asset-11.",
+      "grounding": [
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "2027-01-21\nX posts to Kofi for review and scheduling"
+        },
+        {
+          "origin": "source",
+          "source_ref": "source_106",
+          "quote": "Launch posts are scheduled. Everything else is posted live by whoever is on the DevRel rota"
+        }
+      ],
+      "requires_user_decision": true,
+      "treatment": "Choose a workflow for the non-launch how-to post. If following the playbook, Kofi can review it on January 21 and the DevRel rota can publish it live on February 2, or February 3 if the release-note condition applies. If scheduling is required, obtain an exception to the playbook before scheduling.",
+      "statements": [
+        "Brief: X posts are to be sent to Kofi for review and scheduling on January 21.",
+        "X playbook: launch posts are scheduled; other posts are published live by the DevRel rota."
+      ],
+      "source_refs": [
+        "source_106"
+      ],
+      "affected_asset_ids": [
+        "asset-11"
+      ],
+      "decision_type": "campaign_choice",
+      "question": "Should the February how-to X post follow the playbook and be published live, or should the campaign seek an exception to schedule it?",
+      "options": [
+        "Follow the playbook: review in advance and have the DevRel rota publish live on February 2, or February 3 if the release-note condition applies.",
+        "Seek an exception to schedule the post; do not schedule it unless that exception is granted.",
+        "Remove the how-to X post from the campaign."
+      ]
+    }
+  ],
+  "limitations": [
+    "The two proposed findings about X scheduling concern the same asset and conflict, so they are consolidated into one decision.",
+    "The proposed landing-page imagery finding cites source_256, which is not in the supplied source catalog. The supplied landing-page imagery passage gives constraints for working-room photos but does not require product UI for product pages. The supplied screenshot guidance does not establish that requirement either. The brief's working-room direction therefore does not support retaining that proposed conflict.",
+    "The proposed claim-wording issue does not require a user decision. The brief requires the exact wording “limits what a compromised agent can do”; source_451 bans “prevents prompt injection,” and the product limitations in source_176 are consistent with the narrower wording. Use the required wording and omit the broader claim.",
+    "The brief says Product and Legal confirmed the January 26, 2027 status change, and scopes that override to the listed campaign assets and dates. Apply that as planning evidence; no additional approval document is needed for planning. Keep the stated embargo in force before launch and complete scheduled claims and brand checks before publication.",
+    "The brief's statements that approvals can be answered from Slack and that the agent framework stays the same are supported in the supplied product passages (source_51 and source_201). The supplied product passages do not independently verify the brief's gateway-failure behavior claim; Dov's technical read should substantiate or revise that claim before it is used as fact. This does not prevent planning.",
+    "No candidate copy or selected library image was supplied. Final wording, image metadata and restrictions, and visual fit cannot yet be assessed. Check the selected image record and the image itself before publication."
+  ],
+  "blocking_gaps": []
+}
+```
+
+Assessment: verify cited sources are in this batch, and reconcile equivalent findings across batches before asking questions. Cache reuse depends on identical passage membership/order, instructions and schema.
+
+## 16. campaign_conflict_check
+
+Run `edbdac1a-d3ae-4341-99ee-9d30f58faf92`; gpt-6-luna; completed; 45887 ms; input 66112; output 4144; cached 3199; estimated cost 0.00996804.
+
+- Input 1, user: 206,308 chars; explicit boundary: True. passages (206,279 chars)
+- Input 2, developer: 564 chars; explicit boundary: False. review_task (547 chars)
+- Input 3, user: 44,571 chars; explicit boundary: False. requirements (24,480 chars), proposed_review (10,801 chars), conversation (9,054 chars), candidate (4 chars), current_decisions (2 chars)
+
+Schema SHA256: `335c10c8c7331627`. Serialized request: 277,053 chars.
+
+Actual structured output:
+
+```json
+{
+  "conflicts": [
+    {
+      "explanation": "The brief identifies the landing page as a product page and explicitly specifies a working-room hero. The landing-page imagery guidance directs product pages to use product UI; its working-room option is for pages about a role or problem when there is no single screen to show. The brief also rules out the available Leashgate screens, so the specified hero and the product-page rule cannot both be followed as written.",
+      "grounding": [
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "The landing page is the product page"
+        },
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "The landing page hero is a working room."
+        },
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "Design's console screens for launch will not be ready in time, and the Leashgate console screens in the library carry the early access pill, which is not to be cropped off. Keep them off every asset in this campaign."
+        },
+        {
+          "origin": "source",
+          "source_ref": "source_256",
+          "quote": "Use product UI when the page is about a product or a capability. Use a working room when the page speaks to a role or a problem and there is no single screen to show."
+        }
+      ],
+      "requires_user_decision": true,
+      "treatment": "Choose a direction for this hero before design. Keeping the working-room hero follows the brief but departs from the product-page guidance; using product UI follows the guidance but requires changing the brief’s image constraints or timing to provide a suitable current screen. A documented Brand exception is another route if the working-room direction is retained.",
+      "statements": [
+        "Brief: This is a product page, and its hero is to be a working room.",
+        "Landing-page guidance: Use product UI for a page about a product or capability; use a working room for a role- or problem-led page when there is no single screen to show."
+      ],
+      "source_refs": [
+        "source_256"
+      ],
+      "affected_asset_ids": [
+        "asset-01"
+      ],
+      "decision_type": "campaign_choice",
+      "question": "For the Leashgate product page, should the plan retain the specified working-room hero, change the constraints or timing to allow current product UI, or seek a documented Brand exception?",
+      "options": [
+        "Keep the working-room hero as specified in the brief.",
+        "Revise the constraints or timing so the page can use suitable current Leashgate product UI.",
+        "Keep the working-room hero and seek a documented Brand exception."
+      ]
+    }
+  ],
+  "limitations": [
+    "No candidate copy or selected image was supplied, so final wording, image choice, image-record restrictions and visual fit cannot be assessed.",
+    "The supplied passages do not independently substantiate the brief’s statements that approvals can be answered from Slack or that the agent framework stays the same. Treat those as factual claims to confirm before using them as established product facts; this does not prevent planning with conditional wording or omission.",
+    "No specific library image or metadata record was supplied. Check the chosen image’s usage rights, restrictions, dimensions and placement suitability.",
+    "The proposed X scheduling conflict relied on source_106, which is not in the supplied source catalog. The supplied X guidance does not establish the cited live-post-only rule, so that conflict is not retained.",
+    "The proposed prompt-injection wording conflict relied on source passages not present in the supplied catalog. The supplied approved-claims guidance gives the applicable treatment: use “limits what a compromised agent can do” and do not make the banned prompt-injection claim. No user decision is needed."
+  ],
+  "blocking_gaps": []
+}
+```
+
+Assessment: verify cited sources are in this batch, and reconcile equivalent findings across batches before asking questions. Cache reuse depends on identical passage membership/order, instructions and schema.
+
+## 17. campaign_conflict_check
+
+Run `2f91c071-3b2a-4ab8-abb4-94079f90cf24`; gpt-6-luna; completed; 64915 ms; input 111384; output 6301; cached 3199; estimated cost 0.01670554.
+
+- Input 1, user: 385,992 chars; explicit boundary: True. passages (385,918 chars)
+- Input 2, developer: 564 chars; explicit boundary: False. review_task (547 chars)
+- Input 3, user: 44,571 chars; explicit boundary: False. requirements (24,480 chars), proposed_review (10,801 chars), conversation (9,054 chars), candidate (4 chars), current_decisions (2 chars)
+
+Schema SHA256: `335c10c8c7331627`. Serialized request: 463,944 chars.
+
+Actual structured output:
+
+```json
+{
+  "conflicts": [
+    {
+      "explanation": "The brief identifies asset-01 as the product page and requires a working-room hero. The landing-page guidance directs product pages to use product UI. The brief also rules out the existing Leashgate console screens, so the two instructions cannot both be followed as written.",
+      "grounding": [
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "The landing page is the product page"
+        },
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "The landing page hero is a working room."
+        },
+        {
+          "origin": "source",
+          "source_ref": "source_256",
+          "quote": "Use product UI when the page is about a product or a capability."
+        }
+      ],
+      "requires_user_decision": true,
+      "treatment": "Resolve the hero direction before design. To follow the product-page rule, revise the brief to permit suitable, current product UI and adjust the timing or constraints if needed. To retain the working-room hero, seek and record a Brand exception; do not simply use the library Leashgate screens, which the brief excludes.",
+      "statements": [
+        "Brief: The landing page is the product page, and its hero must be a working room.",
+        "Landing-page guidance: Use product UI when the page is about a product or capability."
+      ],
+      "source_refs": [
+        "source_256"
+      ],
+      "affected_asset_ids": [
+        "asset-01"
+      ],
+      "decision_type": "campaign_choice",
+      "question": "Should the plan revise the hero to use suitable, current product UI, or seek a documented Brand exception to keep the specified working-room hero?",
+      "options": [
+        "Revise the brief and use suitable, current Leashgate product UI for the hero.",
+        "Keep the working-room hero, but seek and record a Brand exception before design."
+      ]
+    },
+    {
+      "explanation": "The January 21 instruction covers X posts for review and scheduling. Asset-11 is a how-to post, not a launch post; the X playbook says non-launch posts are posted live by the DevRel rota. Asset-05 is a launch post and fits the playbook's scheduling exception. The how-to post's handling needs to be resolved.",
+      "grounding": [
+        {
+          "origin": "user",
+          "source_ref": null,
+          "quote": "X posts to Kofi for review and scheduling"
+        },
+        {
+          "origin": "source",
+          "source_ref": "source_106",
+          "quote": "Launch posts are scheduled. Everything else is posted live by whoever is on the DevRel rota"
+        }
+      ],
+      "requires_user_decision": true,
+      "treatment": "Keep asset-05 eligible for scheduling as a launch post. For asset-11, follow the playbook by reviewing it in advance and having the DevRel rota post it live on February 2 or 3 as applicable, or seek an explicit exception before scheduling it.",
+      "statements": [
+        "Brief: X posts are to be sent to Kofi for review and scheduling on January 21.",
+        "X playbook: launch posts are scheduled; other posts are posted live by the DevRel rota."
+      ],
+      "source_refs": [
+        "source_106"
+      ],
+      "affected_asset_ids": [
+        "asset-11"
+      ],
+      "decision_type": "campaign_choice",
+      "question": "Should asset-11 follow the X playbook and be posted live by the DevRel rota, or should the campaign seek an exception to schedule it?",
+      "options": [
+        "Review it in advance, but leave it unscheduled for the DevRel rota to post live on February 2 or 3 as applicable.",
+        "Seek an explicit exception to the live-posting rule before scheduling it."
+      ]
+    }
+  ],
+  "limitations": [
+    "No draft copy or selected image was supplied, so final copy, claim phrasing, image choice, image-record restrictions, and visual fit cannot be assessed.",
+    "The proposed working-room and X scheduling findings were each duplicated; each is retained once with the appropriate asset scope.",
+    "The proposed outcome-wording issue is not an unresolved user decision: the brief's exact wording, “limits what a compromised agent can do,” matches the approved wording in source_370. Do not carry the broader, unapproved “prevents prompt injection from becoming an incident” wording from source_153 into campaign copy.",
+    "The brief supplies planning evidence that Product and Legal confirmed the January 26, 2027 status change and scopes the override to Leashgate status for these assets. Older early-access guidance therefore does not create an unresolved status conflict.",
+    "Planning is possible, but publication checks remain: review final claims and copy as applicable, and verify the selected image's rights, restrictions, and placement suitability."
+  ],
+  "blocking_gaps": []
+}
+```
+
+Assessment: verify cited sources are in this batch, and reconcile equivalent findings across batches before asking questions. Cache reuse depends on identical passage membership/order, instructions and schema.
+
+## 18. campaign_research_plan
+
+Run `99009e63-59b7-451c-ad8b-41a5f37f7583`; gpt-6-luna; completed; 4510 ms; input 6207; output 350; cached 0; estimated cost 0.0009508.
+
+- Input 1, input: 24,430 chars; explicit boundary: False. assets (12,371 chars), topic_details (8,445 chars), constraints (3,484 chars), topic (41 chars), unknowns (2 chars), issues (2 chars)
+
+Schema SHA256: `cfca52697ed7b590`. Serialized request: 26,750 chars.
+
+Actual structured output:
+
+```json
+{"reason":"External research may help provide the campaign’s optional, sourced market-framing statistic. It should add industry context only, not substantiate claims about Leashgate.","queries":["What recent, credible third-party research quantifies security or governance concerns for enterprise AI agents that use tools?"]}
+```
+
+## 19. scope_campaign_plan
+
+Run `d87a83da-6bdb-4121-aaee-9d18f037fce0`; gpt-6-luna; completed; 13911 ms; input 29934; output 1411; cached 0; estimated cost 0.004447175.
+
+- Input 1, input: 97,915 chars; explicit boundary: False. catalog (61,843 chars), task (36,044 chars)
+
+Schema SHA256: `cf2ee83506664373`. Serialized request: 105,846 chars.
+
+Actual structured output:
+
+```json
+{"source_ids":["8cb0b048-4d9d-4fbb-aae3-79c022f6f5ad","78289ba2-4462-4edb-8967-da6cde0c391c","263139ea-acb9-4a45-8dbb-edc0ccd74f09","48c12126-8baa-42ec-a53b-10724cf7c3b0","697aa633-5160-4a2d-b35a-b4daa8f4add7","eeec5e17-ffc5-406d-819c-d661a29a103a","f42db19c-70d0-4928-96d1-382599652ac9","027c8e51-3213-4aa6-9af8-0892772d543d","b47549a2-fea7-42ba-bec7-3acb024770f4","85f52c31-27b5-4fe5-921a-ea411fb55932","e78d40b5-bd92-4672-8eb6-72a88ca8639d","3c5d7e1c-9809-4a19-bba8-13e9c96d32b0","b463cb57-17ad-45be-a529-05c9e37501e7"],"full_review_required":false,"reason":"The new answers affect only the landing-page hero conflict and the handling of the how-to X post. These sources cover the product-page hero and product-UI guidance, currentness, source and sign-off, plus image metadata and restrictions; the X playbook sources cover the applicable posting rules. The campaign-wide review can remain scoped to these changes."}
+```
+
+## 20. campaign_plan
+
+Run `96e495b6-e7e9-4f0b-bd98-25af6c3c93e2`; gpt-6-luna; timeout; 60095 ms; input None; output None; cached None; estimated cost None.
+
+- Input 1, user: 310,791 chars; explicit boundary: True. original_sources (310,769 chars)
+- Input 2, user: 278,878 chars; explicit boundary: False. brand_context (262,331 chars), conversation (14,192 chars), current_decisions (2,163 chars), candidate_to_update (4 chars), continuation_instruction (4 chars), brand_preferences (2 chars), current_drafts (2 chars), previous_plans (2 chars)
+
+Schema SHA256: `dad17ec62deff731`. Serialized request: 624,037 chars.
+
+Error: {"type": "APITimeoutError", "message": "Request timed out.", "status_code": null, "body": null, "exception_chain": [{"type": "APITimeoutError", "message": "Request timed out."}, {"type": "ReadTimeout", "message": "The read operation timed out"}, {"type": "ReadTimeout", "message": "The read operation timed out"}], "root_cause": {"type": "ReadTimeout", "message": "The read operation timed out"}, "endpoint": {"scheme": "https", "host": "api.openai.com", "port": null}}
+
+Assessment: no completed response or usage was recorded. This is unknown provider billing, not zero tokens or zero cost. No retry is present in this campaign export.

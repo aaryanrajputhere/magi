@@ -30,7 +30,7 @@ def test_review_model_can_be_overridden_without_changing_planner(monkeypatch):
     review_campaign(client, settings, campaign, [{'role': 'user', 'text': request}],
                     [{'chunk_id': 's1', 'content': rule}])
     assert all(call.model == 'test-review-model' for call in client.requests)
-    assert settings.magi_retrieval_planner_model == 'gpt-4.1-mini'
+    assert settings.magi_retrieval_planner_model == 'gpt-6-luna'
 
 
 def test_essential_gap_still_fails_closed(monkeypatch):

@@ -10,6 +10,43 @@ from app.brand.rule_pack import Assignment, Limit, validate_assignments, validat
 from app.llm.context import RunContext
 
 
+@pytest.mark.parametrize('chunk_id,quote', [
+    ('rule', 'Use the new name.'), ('unknown', 'Use current naming.'),
+    ('rule', 'Use current naming. Never invent facts.'),
+])
+def test_invalid_writing_excerpt_falls_back_to_originals(chunk_id, quote):
+    from app.brand.rule_pack import WritingExcerpt, attach_writing_evidence
+    from app.llm.prompt_payloads import writing_package
+
+    original = [{'chunk_id': 'rule', 'content': 'Use current naming.\nNever invent facts.'}]
+    rules = {'format': 'blog', 'evidence': original, 'limits': [],
+             'writing_evidence': [{'chunk_id': 'rule', 'content': 'stale excerpt'}]}
+    result = SimpleNamespace(run_id='writing-run', parsed=SimpleNamespace(
+        excerpts=[WritingExcerpt(chunk_id=chunk_id, quote=quote)]))
+    attach_writing_evidence(rules, result)
+    assert rules['writing_rules_status'] == 'original_evidence_fallback'
+    assert rules['writing_rules_run_id'] == 'writing-run'
+    assert 'writing_evidence' not in rules
+    assert rules['evidence'] == original
+    packet = writing_package({'rule_pack': rules, 'evidence': original})
+    assert packet['evidence'] == original
+    assert quote not in [e['content'] for e in packet['evidence']]
+
+
+def test_valid_writing_excerpt_preserves_quoted_limits():
+    from app.brand.rule_pack import WritingExcerpt, attach_writing_evidence
+
+    text = 'Use current naming.\nBlog body: 900–1400 words.'
+    rules = {'evidence': [{'chunk_id': 'rule', 'content': text}],
+             'limits': [{'chunk_id': 'rule', 'quote': 'Blog body: 900–1400 words.'}]}
+    result = SimpleNamespace(run_id='writing-run', parsed=SimpleNamespace(
+        excerpts=[WritingExcerpt(chunk_id='rule', quote='Use current naming.')]))
+    attach_writing_evidence(rules, result)
+    assert rules['writing_rules_status'] == 'verified_excerpts'
+    assert 'Blog body: 900–1400 words.' in rules['writing_evidence'][0]['content']
+    assert rules['evidence'][0]['content'] == text
+
+
 def pack(field='body', unit='characters', minimum=None, maximum=240):
     return {'version': 'original_rules_v1', 'limits': [{'field': field, 'unit': unit,
         'minimum': minimum, 'maximum': maximum}], 'evidence': [{'chunk_id': 'rule',
@@ -89,7 +126,8 @@ def test_valid_document_selection_needs_no_repair():
                             ['claims'], None, None, None, [], {}) is selection
 
 
-def test_rule_packs_continue_after_citation_repair_and_cache_verified_result(tmp_path):
+@pytest.mark.parametrize('writing_result', ['valid', 'invalid_excerpt', 'timeout', 'validation_error', 'provider_error'])
+def test_rule_packs_continue_after_citation_repair_and_cache_verified_result(tmp_path, writing_result):
     from sqlalchemy.orm import Session
 
     from app.brand import rule_pack
@@ -121,16 +159,33 @@ def test_rule_packs_continue_after_citation_repair_and_cache_verified_result(tmp
             calls.append(request.operation)
             if request.operation == 'campaign_rule_limits':
                 return SimpleNamespace(parsed=rule_pack.Limits(limits=[]))
+            if request.operation == 'campaign_writing_rules':
+                if writing_result in {'timeout', 'validation_error', 'provider_error'}:
+                    from app.llm.client import ModelRunError
+                    raise ModelRunError('writing-run', writing_result)
+                evidence = json.loads(request.input)['evidence']
+                return SimpleNamespace(run_id='writing-run', parsed=rule_pack.WritingRules(
+                    excerpts=[rule_pack.WritingExcerpt(chunk_id=evidence[0]['chunk_id'],
+                        quote='Invented paraphrase' if writing_result == 'invalid_excerpt' else evidence[0]['content'])]))
             selected = [a.model_copy(deep=True) for a in assignments]
             if request.operation == 'campaign_rule_documents':
                 selected[-1].document_id = 'wrong'
             return SimpleNamespace(parsed=rule_pack.Selection(assignments=selected))
     settings = SimpleNamespace(magi_conflict_review_model='test')
+    if writing_result == 'provider_error':
+        from app.llm.client import ModelRunError
+        with pytest.raises(ModelRunError):
+            rule_pack.build_rule_packs(engine, 'b', ['blog'], Client(), settings, 'c')
+        return
     packs = rule_pack.build_rule_packs(engine, 'b', ['blog'], Client(), settings, 'c')
     assert packs['blog']['coverage'] == 'complete'
     assert {a['document_id'] for a in packs['blog']['assignments']} == {'d'}
     assert packs['blog']['evidence']
-    assert calls == ['campaign_rule_documents', 'campaign_rule_documents_repair', 'campaign_rule_limits']
+    assert packs['blog']['writing_rules_status'] == (
+        'verified_excerpts' if writing_result == 'valid' else 'original_evidence_fallback')
+    assert packs['blog']['writing_rules_run_id'] == 'writing-run'
+    assert calls == ['campaign_rule_documents', 'campaign_rule_documents_repair',
+                     'campaign_rule_limits', 'campaign_writing_rules']
     assert rule_pack.build_rule_packs(engine, 'b', ['blog'], None, settings, 'c') == packs
 
 
@@ -167,7 +222,7 @@ def test_repair_rechecked_and_failed_copy_is_not_complete(monkeypatch, repaired_
     campaign = SimpleNamespace(id='c', brand_id='b', data={'messages': []})
     draft = {'body': 'Old', 'source_ids': ['rule']}
     original = copy.deepcopy(draft)
-    result = validation.validate_and_repair(Client(), SimpleNamespace(magi_retrieval_planner_model='test'),
+    result = validation.validate_and_repair(Client(), SimpleNamespace(magi_writer_model='test'),
         campaign, {'id': 'a'}, draft, {'rule_pack': pack(), 'evidence': pack()['evidence'],
             'brand_preferences': [{'id': 'm', 'text': 'Short paragraphs', 'revision': 2}]})
     assert result['status'] == ('completed' if repaired_ok else 'needs_review')
@@ -213,7 +268,7 @@ def test_mechanical_failure_repairs_even_when_reviewer_is_unavailable(monkeypatc
         def run(self, request, output_model):
             calls.append(request)
             return SimpleNamespace(parsed=SimpleNamespace(model_dump=lambda: {'body': 'Short'}))
-    result = validation.validate_and_repair(Client(), SimpleNamespace(magi_retrieval_planner_model='test'),
+    result = validation.validate_and_repair(Client(), SimpleNamespace(magi_writer_model='test'),
         SimpleNamespace(id='c', brand_id='b', data={}), {'id': 'a'},
         {'body': 'x' * 309, 'source_ids': []}, {'rule_pack': pack(), 'evidence': pack()['evidence']})
     assert len(calls) == 1

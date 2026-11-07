@@ -10,6 +10,7 @@ from app.brand.conflict_coverage import VERSION, current_pool, review_campaign
 from app.brand.decisions import DECISION_GUIDANCE, current_decisions, evidence_snapshot
 from app.llm.client import ModelRequest
 from app.llm.context import RunContext
+from app.llm.prompt_payloads import prompt_decisions, semantic_projection
 
 
 class DecisionMatch(BaseModel):
@@ -56,7 +57,7 @@ def reconcile_decisions(client, settings, campaign, findings, evidence, messages
         'answer, relevant changed evidence or a later user instruction changing that decision. '
         'For changed evidence cite changed_source_ids; for later intent quote changed_user_instruction '
         'exactly. A historical source disagreement is not new evidence. New means no matching decision.',
-        input=json.dumps({'findings': findings, 'decisions': decisions,
+        input=json.dumps({'findings': semantic_projection(findings), 'decisions': semantic_projection(decisions),
                           'changes_since_decision': changes}), max_output_tokens=4000,
         context=RunContext(brand_id=campaign.brand_id, campaign_id=campaign.id)), output_model=schema)
     matches = {m.finding_index: m for m in result.parsed.matches}
@@ -152,25 +153,95 @@ def prepare_conflict_intake(client, settings, campaign, messages, evidence, revi
     if engine is not None:
         key += ':' + (authority['id'] if authority else 'no-authority')
     intake = campaign.data.get('conflict_intake', {})
-    if intake.get('revision') != key:
-        campaign.data = {**campaign.data, 'conflict_coverage': {'status': 'incomplete'}}
+    from app.brand.context import fingerprint
+    from app.brand.context_scope import intent, reviewed_choices_only, select_scope
+    corpus = fingerprint(engine, campaign.brand_id) if engine is not None else None
+    semantic = {'corpus_fingerprint': corpus, 'user_messages': intent(messages), 'source_snapshot': evidence_snapshot(evidence),
+        'requirements': {k: v for k, v in (campaign.data.get('requirements') or {}).items()
+                         if k not in {'run_id', 'extraction_run_id'}},
+        'decisions': prompt_decisions([d for d in current_decisions(campaign)
+                                      if d.get('origin') != 'reviewed_rule']),
+        'model': settings.magi_conflict_review_model, 'version': VERSION,
+        'authority_key': (authority['id'] if authority else 'no-authority')}
+    receipt_key = hashlib.sha256(json.dumps(semantic, sort_keys=True).encode()).hexdigest()
+    prior_report = campaign.data.get('conflict_coverage', {})
+    if prior_report.get('status') not in {'ready', 'needs_decision'}:
+        prior_report = intake.get('completed_review', prior_report)
+    prior = intake.get('review_receipt')
+    reusable = bool(prior_report.get('coverage_challenged')
+                    and prior_report.get('status') in {'ready', 'needs_decision'})
+    choices_settle_review = bool(prior and reusable and reviewed_choices_only(campaign, prior, messages)
+        and all(prior.get(field) == semantic[field] for field in
+                ('source_snapshot', 'requirements', 'model', 'version', 'authority_key', 'corpus_fingerprint')))
+    same = reusable and (intake.get('receipt_key') == receipt_key or choices_settle_review)
+    if same:
+        campaign.data = {**campaign.data, 'conflict_intake': {**intake, 'revision': key,
+                         'requirements_revision': revision, 'receipt_key': receipt_key,
+                         'review_receipt': semantic}, 'conflict_coverage': prior_report}
+    if not same and (intake.get('revision') != key or (prior and intake.get('receipt_key') != receipt_key)):
+        scoped_ids = None
+        if (prior and reusable and prior.get('model') == semantic['model']
+                and prior.get('version') == VERSION
+                and prior.get('authority_key') == semantic['authority_key']
+                and prior.get('corpus_fingerprint') == corpus):
+            changed_existing = any(semantic['source_snapshot'].get(k) != v
+                                   for k, v in prior['source_snapshot'].items())
+            if not changed_existing:
+                scoped_ids, full = select_scope(client, settings, campaign, messages, evidence,
+                    operation='scope_campaign_changes', prior=prior)
+                if full:
+                    scoped_ids = None
+
+        campaign.data = {**campaign.data, 'conflict_coverage': {'status': 'incomplete'},
+            'conflict_intake': {**intake, 'completed_review': prior_report}}
         if checkpoint is not None:
             checkpoint()
         result = review_campaign(client, settings, campaign, messages, evidence,
-                                  query_groups=query_groups, engine=engine)
+                                  query_groups=query_groups, engine=engine,
+                                  **({'source_scope_ids': scoped_ids, 'previous_review': prior_report}
+                                     if scoped_ids is not None else {}))
+        if scoped_ids is not None:
+            untouched = [f for f in prior_report.get('findings', [])
+                         if not set(f.get('source_ids', [])) & scoped_ids]
+            result['findings'] = [*untouched, *result['findings']]
+            report = result['report']
+            report.update({'scope': 'delta', 'parent_snapshot_key': prior_report.get('snapshot_key'),
+                'reviewed_source_ids': sorted(scoped_ids),
+                'source_snapshot': semantic['source_snapshot'], 'source_count': len(evidence),
+                'findings': result['findings'],
+                'treatments': [*prior_report.get('treatments', []), *report.get('treatments', [])],
+                'limitations': list(dict.fromkeys([*prior_report.get('limitations', []),
+                                                   *report.get('limitations', [])]))})
         campaign.data = {**campaign.data, 'conflict_coverage': result['report']}
         findings = result['findings']
         query_reviews = [{'query_id': 'campaign_wide', 'conflicts': findings}]
         findings = reconcile_decisions(client, settings, campaign, findings, evidence, messages)
         rejected = []
         if engine is not None:
-            findings = [resolve_question(engine, client, settings, campaign, f, authority) for f in findings]
+            if settings.magi_parallel_conflict_resolution and len(findings) > 1:
+                from copy import deepcopy
+                from types import SimpleNamespace
+
+                from app.llm.parallel import run_jobs
+                frozen = SimpleNamespace(id=campaign.id, brand_id=campaign.brand_id, data=deepcopy(campaign.data))
+                outcomes = run_jobs(client, [lambda child, f=f: resolve_question(
+                    engine, child, settings, frozen, f, authority) for f in map(deepcopy, findings)])
+                resolved = []
+                for value, error in outcomes:
+                    if error is not None:
+                        raise error
+                    resolved.append(value)
+                findings = resolved
+            else:
+                findings = [resolve_question(engine, client, settings, campaign, f, authority) for f in findings]
 
         history = {f['id']: f for f in campaign.data.get('conflicts', [])}
         history.update({f['id']: f for f in findings})
         campaign.data = {**campaign.data, 'conflicts': list(history.values())}
         campaign.data = {**campaign.data, 'conflict_intake': {
             'revision': key, 'requirements_revision': revision,
+            'receipt_key': receipt_key, 'review_receipt': semantic,
+            'completed_review': result['report'],
             'authority_key': (authority['id'] if authority else 'no-authority') if engine is not None else None,
             'issue_ids': [finding['id'] for finding in findings], 'query_reviews': query_reviews,
             'rejected_findings': rejected,

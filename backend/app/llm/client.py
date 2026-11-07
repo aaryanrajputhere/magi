@@ -18,6 +18,7 @@ from app.config import Settings, get_settings
 from app.llm.context import RunContext
 from app.llm.costs import ModelPricing, estimate_usage
 from app.llm.embeddings import EmbeddingRequest, EmbeddingResult, tracked_embed
+from app.llm.prompt_cache import cacheable_input
 from app.models import LLMRun
 
 
@@ -33,6 +34,10 @@ class ModelRequest(BaseModel):
     context: RunContext = Field(default_factory=RunContext)
     timeout_seconds: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     prompt_cache_key: str | None = None
+    prompt_cache_ttl: Literal["30m", "12h"] | None = None
+    prompt_cache_mode: Literal["implicit", "explicit"] | None = None
+    cache_prefix_messages: int | None = Field(default=None, gt=0, le=4)
+    source_id_allowlist: list[str] | None = None
 
     @field_validator("operation", "model")
     @classmethod
@@ -151,6 +156,10 @@ class TrackedOpenAI:
         self._owns_sdk = sdk is None
         self.pricing = pricing
 
+    def fork(self):
+        """Independent transport and persisted-run sessions for an immutable worker task."""
+        return TrackedOpenAI(self.engine, self.settings, pricing=self.pricing)
+
     @property
     def secrets(self) -> list[str]:
         return [
@@ -170,16 +179,13 @@ class TrackedOpenAI:
     def _start(self, identifier: str, request: ModelRequest | EmbeddingRequest, body: dict) -> None:
         try:
             with Session(self.engine) as session, session.begin():
-                session.add(
-                    LLMRun(
-                        id=identifier,
-                        operation=redact(request.operation, self.secrets),
-                        requested_model=redact(request.model, self.secrets),
-                        context=redact(request.context.model_dump(mode="json"), self.secrets),
-                        request_body=redact(body, self.secrets),
-                        timeout_seconds=Decimal(str(getattr(request, "timeout_seconds", None) or self.settings.magi_openai_timeout_seconds)),
-                    )
-                )
+                session.add(LLMRun(id=identifier,
+                    operation=redact(request.operation, self.secrets),
+                    requested_model=redact(request.model, self.secrets),
+                    context=redact(request.context.model_dump(mode="json"), self.secrets),
+                    request_body=redact(body, self.secrets),
+                    timeout_seconds=Decimal(str(getattr(request, "timeout_seconds", None)
+                        or self.settings.magi_openai_timeout_seconds))))
         except SQLAlchemyError as exc:
             raise RunLoggingError(identifier) from exc
 
@@ -197,10 +203,23 @@ class TrackedOpenAI:
     def run(
         self, request: ModelRequest, *, output_model: type[BaseModel] | None = None
     ) -> ModelResult:
+        from app.llm.prompt_cache import prompt_cache_key, supports_breakpoints
+        instruction_families = {'plan_retrieval', 'campaign_decision_match',
+                                'campaign_conflict_resolve', 'campaign_requirements_repair'}
+        if (self.settings.magi_explicit_prompt_cache and supports_breakpoints(request.model)
+                and request.operation in instruction_families and not request.cache_prefix_messages):
+            items = ([{'role': 'user', 'content': request.input}]
+                     if isinstance(request.input, str) else request.input)
+            request = request.model_copy(update={
+                'instructions': '',
+                'input': [{'role': 'developer', 'content': request.instructions}, *items],
+                'cache_prefix_messages': 1,
+                'prompt_cache_key': request.prompt_cache_key or prompt_cache_key(
+                    request.context.brand_id, request.operation)})
         body = {
             "model": request.model,
             "instructions": request.instructions,
-            "input": request.input,
+            "input": cacheable_input(request.input, request.model, request.cache_prefix_messages, request.prompt_cache_ttl),
             "max_output_tokens": request.max_output_tokens,
             "stream": False,
             "store": False,
@@ -215,6 +234,68 @@ class TrackedOpenAI:
             body["text"] = strict_output_schema(output_model)
         if request.prompt_cache_key is not None:
             body["prompt_cache_key"] = request.prompt_cache_key
+        if request.prompt_cache_mode is not None:
+            body["prompt_cache_options"] = {"mode": request.prompt_cache_mode}
+        from app.llm.prompt_cache import prefix_metadata, supports_breakpoints
+        if supports_breakpoints(request.model) and request.cache_prefix_messages:
+            if request.prompt_cache_mode is None and self.settings.magi_explicit_prompt_cache:
+                body["prompt_cache_options"] = {"mode": "explicit"}
+            request = request.model_copy(update={"context": request.context.model_copy(update={
+                "prompt_metadata": prefix_metadata(body, request.cache_prefix_messages)})})
+        from app.llm.shared_evidence import (OPERATIONS, VERSION, GUIDANCE,
+                                              canonical_messages, saved_blocks)
+        if (self.settings.magi_shared_evidence_cache
+                and self.settings.magi_explicit_prompt_cache
+                and request.model == 'gpt-6-luna' and request.operation in OPERATIONS
+                and request.context.campaign_id and isinstance(request.input, list)
+                and request.tools is None and output_model is not None):
+            from sqlalchemy import select
+            with Session(self.engine) as session:
+                records = session.scalars(select(LLMRun).where(
+                    LLMRun.context['campaign_id'].as_string() == request.context.campaign_id,
+                    LLMRun.context['brand_id'].as_string() == request.context.brand_id,
+                    LLMRun.requested_model == request.model,
+                    LLMRun.status == 'completed').order_by(LLMRun.started_at)).all()
+                previous = [saved_blocks(record.request_body) for record in records
+                            if record.context.get('prompt_metadata', {}).get('evidence_version') == VERSION]
+            blocks, projected = canonical_messages(request.input, previous)
+            if blocks:
+                effective_format = body['text']
+                if request.source_id_allowlist:
+                    # Bind citation IDs after the shared evidence boundary. This
+                    # prevents spliced UUIDs without varying the cached prefix.
+                    source_schema = effective_format['format'].get('schema', {}).get('properties', {}).get('source_ids')
+                    if source_schema and source_schema.get('type') == 'array':
+                        source_schema['items'] = {'type': 'string', 'enum': sorted(set(request.source_id_allowlist))}
+                body.update(instructions=GUIDANCE, text={'format': {'type': 'text'}},
+                    prompt_cache_key=prompt_cache_key(request.context.brand_id, VERSION),
+                    prompt_cache_options={'mode': 'explicit'},
+                    input=[*cacheable_input(blocks, request.model, len(blocks), request.prompt_cache_ttl),
+                           {'type': 'configuration_update', 'text': effective_format},
+                           {'role': 'developer', 'content': request.instructions}, *projected])
+                # The caller explicitly identifies leading stable messages. Cache
+                # their metadata too, after the operation-specific schema/instructions.
+                # Keep at most four breakpoints (three text blocks plus metadata).
+                stable_count = min(request.cache_prefix_messages or 0, len(projected))
+                boundary_indices = list(range(1, len(blocks) + 1))
+                prefix_end = len(blocks)
+                if stable_count:
+                    metadata_index = len(blocks) + 2 + stable_count - 1
+                    marked = cacheable_input([body['input'][metadata_index]], request.model,
+                                             1, request.prompt_cache_ttl)[0]
+                    body['input'][metadata_index] = marked
+                    prefix_end = metadata_index + 1
+                    boundary_indices.append(prefix_end)
+                metadata = prefix_metadata(body, prefix_end, boundary_indices)
+                import hashlib, json
+                metadata.update(evidence_version=VERSION,
+                    evidence_blocks=[hashlib.sha256(json.dumps(block, sort_keys=True).encode()).hexdigest()
+                                     for block in saved_blocks(body)],
+                    evidence_source_count=sum(len(block) for block in saved_blocks(body)),
+                    effective_schema_fingerprint=hashlib.sha256(
+                        json.dumps(effective_format, sort_keys=True).encode()).hexdigest())
+                request = request.model_copy(update={'context': request.context.model_copy(
+                    update={'prompt_metadata': metadata})})
         identifier = str(uuid4())
         self._start(identifier, request, body)
         started = perf_counter()
@@ -242,9 +323,11 @@ class TrackedOpenAI:
                         max_retries=0,
                     )
                 # Explicit per-call options prevent injected clients from hiding retries.
-                raw_response = self._sdk.with_options(
-                    max_retries=0, timeout=request.timeout_seconds or self.settings.magi_openai_timeout_seconds
-                ).responses.with_raw_response.create(**body)
+                from app.llm.parallel import campaign_slot
+                with campaign_slot(request.context.campaign_id):
+                    raw_response = self._sdk.with_options(
+                        max_retries=0, timeout=request.timeout_seconds or self.settings.magi_openai_timeout_seconds
+                    ).responses.with_raw_response.create(**body)
                 response_body = raw_response.http_response.json()
                 usage = response_body.get("usage")
                 estimate = estimate_usage(usage, response_body.get("model"), self.pricing)
@@ -254,6 +337,12 @@ class TrackedOpenAI:
                     estimate.cost_reason = (
                         "Returned service tier is unsupported by standard pricing"
                     )
+                if request.prompt_cache_ttl == "12h":
+                    # Mixed implicit/explicit lifetimes need per-lifetime usage prices.
+                    # Do not present the default 30-minute write estimate as 12-hour billing.
+                    estimate.estimated_cost_usd = None
+                    estimate.cost_status = "unknown"
+                    estimate.cost_reason = "12-hour cache writes require lifetime-specific pricing"
                 values.update(estimate.model_dump())
                 values.update(
                     response_body=response_body,

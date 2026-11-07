@@ -1,10 +1,10 @@
 """Direct review, source integrity, resume and approval contracts; no paid calls."""
 import copy
-import json
 from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
+from review_helpers import review_payload
 
 from app.brand import conflict_coverage as coverage
 from app.brand.retrieval import RetrievalError
@@ -36,7 +36,7 @@ class ScriptedClient:
 
     def run(self, request, output_model):
         self.requests.append(request)
-        p = json.loads(request.input)
+        p = review_payload(request)
         assert request.operation in {'campaign_conflict_find', 'campaign_conflict_check'}
         assert p['conversation'][0]['text'] == self.request
         assert p['passages'][0]['content'] == self.rule
@@ -94,7 +94,7 @@ def test_cross_query_sources_are_reviewed_together_without_intermediate_extracti
                {'chunk_id': 'legal', 'content': 'Never claim the product prevents prompt injection.'}]
     seen = []
     def run(request, output_model):
-        p = json.loads(request.input)
+        p = review_payload(request)
         seen.append(request.operation)
         assert {e['content'] for e in p['passages']} == {e['content'] for e in sources}
         assert 'rules' not in p and 'decisions' not in p
@@ -128,7 +128,7 @@ def test_independent_check_can_remove_false_positive():
                 source_refs=['source_0'], affected_asset_ids=[], decision_type='campaign_choice',
                 question='Choose?', options=['Omit', 'Wait'])], limitations=[], blocking_gaps=[])).conflicts
         else:
-            assert json.loads(request.input)['proposed_review']['conflicts']
+            assert review_payload(request)['proposed_review']['conflicts']
         return result
     client.run = run
     assert not coverage.review_campaign(client, Settings(_env_file=None),

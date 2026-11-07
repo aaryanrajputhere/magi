@@ -1,0 +1,35 @@
+{
+  "note": "Three completed isolated smoke trials; remaining warm parallel trial stopped at user request. These are preliminary, not a full rollout evaluation.",
+  "trials": [
+    {
+      "configuration": "serial cold",
+      "elapsed_seconds": 129.271,
+      "requests": 5,
+      "input_tokens": 183912,
+      "cached_input_tokens": 0,
+      "cache_write_tokens": 151718,
+      "output_tokens": 13045,
+      "estimated_cost_usd": 0.02870665
+    },
+    {
+      "configuration": "serial warm",
+      "elapsed_seconds": 107.126,
+      "requests": 5,
+      "input_tokens": 181132,
+      "cached_input_tokens": 145069,
+      "cache_write_tokens": 5470,
+      "output_tokens": 10723,
+      "estimated_cost_usd": 0.01055524
+    },
+    {
+      "configuration": "parallel cold",
+      "elapsed_seconds": 106.166,
+      "requests": 13,
+      "input_tokens": 553325,
+      "cached_input_tokens": 0,
+      "cache_write_tokens": 466017,
+      "output_tokens": 14940,
+      "estimated_cost_usd": 0.074452925
+    }
+  ]
+}

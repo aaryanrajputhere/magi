@@ -452,21 +452,23 @@ def test_tool_choice_is_sent_and_logged(engine, choice):
         tracked.close()
 
 
-def test_per_request_timeout_is_applied_and_logged(engine):
+@pytest.mark.parametrize("timeout_seconds", [120, 300])
+def test_per_request_timeout_is_applied_and_logged(engine, timeout_seconds):
     tracked, sdk, calls = setup_client(engine)
     try:
-        tracked.run(request(timeout_seconds=300))
-        assert calls[0].extensions['timeout']['read'] == 300
-        assert saved(engine).timeout_seconds == 300
+        tracked.run(request(timeout_seconds=timeout_seconds))
+        assert calls[0].extensions['timeout']['read'] == timeout_seconds
+        assert saved(engine).timeout_seconds == timeout_seconds
         assert 'timeout_seconds' not in saved(engine).request_body
     finally:
         sdk.close()
 
 
 def test_connection_failure_logs_underlying_cause_without_credentials(engine):
+    import errno
     def handler(req):
         try:
-            raise OSError(111, 'Connection refused ' + KEY)
+            raise OSError(errno.ECONNREFUSED, 'Connection refused ' + KEY)
         except OSError as cause:
             raise httpx.ConnectError('transport failed', request=req) from cause
 
@@ -476,9 +478,146 @@ def test_connection_failure_logs_underlying_cause_without_credentials(engine):
             tracked.run(request())
         error = saved(engine).error
         assert [e['type'] for e in error['exception_chain']] == ['APIConnectionError', 'ConnectError', 'ConnectionRefusedError']
-        assert error['root_cause']['errno'] == 111
+        assert error['root_cause']['errno'] == errno.ECONNREFUSED
         assert KEY not in json.dumps(error)
         assert error['endpoint']['host'] == 'api.openai.com'
         assert len(calls) == 1
     finally:
         sdk.close()
+
+
+@pytest.mark.parametrize("incoming,writes,expected", [
+    (1000, None, "0.000132"),
+    (1000, 100, "0.0001345"),
+    (272000, 0, "0.027232"),
+    (272001, 0, "0.0544392"),
+])
+def test_luna_pricing_includes_cache_and_long_context(incoming, writes, expected):
+    data = usage()
+    data["input_tokens"] = incoming
+    data["total_tokens"] = incoming + 100
+    if writes is not None:
+        data["input_tokens_details"]["cache_write_tokens"] = writes
+    result = estimate_usage(data, "gpt-6-luna")
+    assert result.cost_status == "estimated"
+    assert result.estimated_cost_usd == Decimal(expected)
+    assert result.pricing_snapshot["version"] == "gpt-6-luna-text-standard-2026-11-07"
+
+
+def test_luna_call_persists_cost_estimate(engine):
+    body = response_body()
+    body['model'] = 'gpt-6-luna'
+    tracked, sdk, calls = setup_client(engine, body=body)
+    try:
+        tracked.run(request(model='gpt-6-luna'))
+        record = saved(engine)
+        assert len(calls) == 1
+        assert record.cost_status == 'estimated'
+        assert record.estimated_cost_usd == Decimal('0.000132')
+        assert record.pricing_snapshot['input_per_million'] == '0.10'
+    finally:
+        sdk.close()
+
+
+def test_shared_evidence_wire_format_and_persisted_registry(engine):
+    from app.llm.context import RunContext
+    from app.llm.shared_evidence import saved_blocks
+    from app.llm.client import strict_output_schema
+    class Result(BaseModel):
+        model_config = ConfigDict(extra='forbid')
+        answer: str
+    tracked, sdk, calls = setup_client(engine, body=response_body('{"answer":"ready"}'))
+    tracked.settings.magi_shared_evidence_cache = True
+    context = RunContext(campaign_id='campaign', brand_id='brand')
+    def make(operation, sources):
+        return request(operation=operation, model='gpt-6-luna', context=context,
+            input=[{'role': 'user', 'content': json.dumps({'sources': sources})}],
+            cache_prefix_messages=1)
+    try:
+        tracked.run(make('campaign_plan', [{'chunk_id': 'a', 'content': 'Exact A'}]), output_model=Result)
+        first = saved(engine)
+        tracked.run(make('campaign_plan_verification', [
+            {'chunk_id': 'r1', 'content': 'Exact A'}, {'chunk_id': 'r2', 'content': 'Exact B'}]), output_model=Result)
+        second = saved(engine)
+        first_body, second_body = [json.loads(call.content) for call in calls]
+        assert first_body['input'][0] == second_body['input'][0]
+        assert len(saved_blocks(second_body)) == 2
+        assert second_body['text'] == {'format': {'type': 'text'}}
+        update = next(m for m in second_body['input'] if m.get('type') == 'configuration_update')
+        assert update['text'] == strict_output_schema(Result)
+        assert second_body['store'] is False
+        assert first.context['prompt_metadata']['evidence_version'] == 'evidence-v2'
+        assert second.context['prompt_metadata']['evidence_source_count'] == 2
+        assert first.request_body == first_body and second.request_body == second_body
+        other = make('route_asset_context', [
+            {'chunk_id': 'x', 'content': 'Exact A'}, {'chunk_id': 'y', 'content': 'Exact B'}])
+        other = other.model_copy(update={'context': RunContext(campaign_id='other', brand_id='brand')})
+        tracked.run(other, output_model=Result)
+        assert len(saved_blocks(json.loads(calls[-1].content))) == 1
+        unsupported = other.model_copy(update={'model': 'gpt-4.1-mini'})
+        tracked.run(unsupported, output_model=Result)
+        assert not any(m.get('type') == 'configuration_update' for m in json.loads(calls[-1].content)['input'])
+        tracked.settings.magi_shared_evidence_cache = False
+        tracked.run(other, output_model=Result)
+        assert not any(m.get('type') == 'configuration_update' for m in json.loads(calls[-1].content)['input'])
+    finally:
+        tracked.close()
+        sdk.close()
+
+
+def test_shared_validation_caches_metadata_but_not_changing_draft(engine):
+    from app.llm.context import RunContext
+    class Output(BaseModel):
+        model_config = ConfigDict(extra='forbid')
+        answer: str
+    tracked, sdk, calls = setup_client(engine, body=response_body('{"answer":"ready"}'))
+    tracked.settings.magi_shared_evidence_cache = True
+    try:
+        for text in ('Original copy', 'Repaired copy'):
+            tracked.run(request(operation='campaign_asset_validation', model='gpt-6-luna',
+                context=RunContext(campaign_id='metadata-test',brand_id='brand'),cache_prefix_messages=1,
+                input=[{'role':'user','content':json.dumps({'rule_pack':{'evidence':[
+                    {'chunk_id':'a','content':'Unchanged original'}]},'source_spans':{'a':[0]}})},
+                       {'role':'user','content':json.dumps({'draft':text})}]),output_model=Output)
+            record = saved(engine)
+            body=json.loads(calls[-1].content)
+            end=record.context['prompt_metadata']['prefix_messages']
+            assert end < len(body['input'])
+            assert isinstance(body['input'][end-1]['content'],list)
+            assert isinstance(body['input'][-1]['content'],str)
+            markers=[part for message in body['input'] for part in
+                     (message.get('content') if isinstance(message.get('content'),list) else [])
+                     if 'prompt_cache_breakpoint' in part]
+            assert len(markers) <= 4
+            if text=='Original copy':
+                prefix=body['input'][:end]
+                fingerprint=record.context['prompt_metadata']['prefix_fingerprint']
+            else:
+                assert prefix==body['input'][:end]
+                assert fingerprint==record.context['prompt_metadata']['prefix_fingerprint']
+    finally:
+        tracked.close()
+        sdk.close()
+
+
+def test_source_id_enum_is_bound_after_shared_prefix(engine):
+    from app.llm.context import RunContext
+    class Output(BaseModel):
+        model_config=ConfigDict(extra='forbid')
+        source_ids:list[str]
+    tracked,sdk,calls=setup_client(engine,body=response_body('{"source_ids":["a"]}'))
+    tracked.settings.magi_shared_evidence_cache=True
+    try:
+        tracked.run(request(operation='generate_campaign_asset',model='gpt-6-luna',
+            context=RunContext(campaign_id='ids',brand_id='brand'),cache_prefix_messages=1,
+            source_id_allowlist=['b','a'],input=[{'role':'user','content':json.dumps({'sources':[
+                {'chunk_id':'a','content':'Exact A'},{'chunk_id':'b','content':'Exact B'}]})}]),output_model=Output)
+        body=json.loads(calls[0].content)
+        assert body['text']=={'format':{'type':'text'}}
+        update=next(m for m in body['input']if m.get('type')=='configuration_update')
+        assert update['text']['format']['schema']['properties']['source_ids']['items']=={
+            'type':'string','enum':['a','b']}
+        assert 'enum' not in Output.model_json_schema()['properties']['source_ids']['items']
+    finally:
+        tracked.close();sdk.close()
+

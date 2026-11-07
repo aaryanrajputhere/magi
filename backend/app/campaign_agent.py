@@ -18,6 +18,7 @@ from app.brand.decisions import DECISION_GUIDANCE, current_decisions, record_ans
 from app.llm.client import ModelRequest, ModelRunError, TrackedOpenAI
 from app.llm.context import RunContext
 from app.llm.prompt_cache import prompt_cache_key
+from app.llm.prompt_payloads import prompt_decisions
 from app.memory import context as memory_context
 from app.models.agent import AgentTurn, CampaignLease
 
@@ -95,7 +96,7 @@ TOOLS = [
         "asset_ids": {"type": "array", "items": {"type": "string"}},
         "replace_existing": {"type": "boolean"}, "instruction": {"type": "string"}}),
     tool("retrieve_context", "Retrieve and compact brand evidence for saved requirements before planning", {"addition": {"type": "boolean"}}),
-    tool("ask_question", "Ask one clarification and wait for the user. Never use for approval. Use choices for 2-5 options or text for an open answer.", {
+    tool("ask_question", "Ask one essential decision and wait. Never use for approval. Prefer 2-5 actionable choices that let planning continue, including omission or a pending-clearance placeholder only when consistent with the brief. Inspect retrieved originals before asking for quotes or clearance, and state precisely what remains missing. Never treat a placeholder as approved copy. Use text only for an indispensable value without valid alternatives.", {
         "text": {"type": "string"}, "kind": {"type": "string", "enum": ["choices", "text"]},
         "options": {"type": "array", "items": {"type": "string"}}}),
     tool("extract_requirements", "Save requirements and inspect unknowns before planning", {"addition": {"type": "boolean"}}),
@@ -105,7 +106,7 @@ TOOLS = [
     tool("read_campaign", "Read current plan and saved drafts", {}),
     tool("propose_plan", "Propose or adjust a plan; additions require approval before generation",
          {"instruction": {"type": "string"}, "addition": {"type": "boolean"}}),
-    tool("revise_draft", "Immediately edit one existing saved draft",
+    tool("revise_draft", "Immediately edit one existing saved draft. Pass the user edit faithfully. Shortening and wording edits may override length/style defaults; do not add minimum lengths or extra requirements.",
          {"instruction": {"type": "string"}, "asset_id": {"type": "string"}}),
     tool("answer_brand_question", "Answer using reviewed brand evidence through the campaign service",
          {"instruction": {"type": "string"}}),
@@ -181,23 +182,43 @@ ARGUMENTS = {"revise_plan": PlanRevision, "add_images": AddImages, "retrieve_con
 
 
 
-def agent_state(campaign):
+def agent_state(campaign, full=False):
     """A routing view; original artifacts remain available through their tools."""
     data = campaign.data
     plans = data.get('plans', [])
     return {
         'id': campaign.id, 'state': campaign.state, 'version': campaign.version,
-        'requirements': data.get('requirements'),
+        'requirements': (data.get('requirements') if full else
+            {k: v for k, v in (data.get('requirements') or {}).items() if k in {'topic', 'issues'}}),
         'pending_question': data.get('pending_question'),
         'current_plan': {k: v for k, v in plans[-1].items()
-                         if k in {'goal', 'constraints', 'assumptions', 'assets'}} if plans else None,
-        'retrieved_context': data.get('retrieved_context'),
+                         if k in ({'goal', 'constraints', 'assumptions', 'assets'} if full else {'goal'})} if plans else None,
+        'retrieved_context': {k: v for k, v in data.get('retrieved_context', {}).items()
+                              if k in {'artifact_id', 'requirements_revision', 'empty_tracks', 'status'}},
         'unresolved_conflicts': [{k: v for k, v in f.items()
                                  if k in {'id', 'issue_id', 'question', 'status'}}
                                 for f in data.get('conflicts', []) if f.get('status') == 'unresolved'],
-        'drafts': [{k: v for k, v in d.items() if k in {'asset_id', 'format', 'title', 'status'}}
+        'drafts': [dict(d) if full else {k: v for k, v in d.items() if k in {'asset_id', 'format', 'title', 'status'}}
                    for d in data.get('generation', {}).get('drafts', [])],
     }
+
+def tool_receipt(campaign, name, args, output):
+    """Return actionable outcomes; full saved copy stays behind read_campaign."""
+    pending = campaign.data.get('pending_question')
+    result = {'status': 'needs_clarification' if pending else output.get('status', 'saved'),
+              'version': campaign.version, 'campaign_state': campaign.state,
+              **{k: output[k] for k in ('image_id', 'empty_tracks', 'removed_asset_ids',
+                   'edited_asset_ids', 'asset_count', 'results', 'issues', 'unknowns') if k in output}}
+    if args.get('asset_id'):
+        result['asset_id'] = args['asset_id']
+    if pending:
+        result.update({'question_id': pending['id'], 'question': pending['text'],
+                       'options': pending.get('options', [])})
+    if name == 'extract_requirements':
+        result['requirements'] = {k: v for k, v in (output.get('requirements') or {}).items()
+                                  if k in {'topic', 'issues', 'unknowns'}}
+    return result
+
 
 def run_turn(identifier, body, session, settings):
     from app.api.campaigns import Message, MessageRoute, load, process_message, snapshot
@@ -235,11 +256,13 @@ def run_turn(identifier, body, session, settings):
     c.data = {**c.data, "messages": [*c.data.get("messages", []), {"id": body.request_id, "role": "user", "text": body.text}]}
     c.version += 1
     session.commit()
-    inputs = [{"role": "user", "content": json.dumps({"request": body.text,
-        "conversation": c.data.get("messages", [])[-12:], "state": agent_state(c), "brand_preferences": memory_context(session, c.brand_id), "current_decisions": current_decisions(c)})}]
+    inputs = [{"role": "user", "content": json.dumps({"conversation": [{"role": m['role'], "text": m.get('text', '')}
+                         for m in c.data.get("messages", [])[-12:]],
+        "state": agent_state(c), "brand_preferences": memory_context(session, c.brand_id),
+        "current_decisions": prompt_decisions(current_decisions(c))})}]
     client = TrackedOpenAI(session.get_bind(), settings)
     completed = []
-    needs_action = bool(pending)
+    needs_action = True
     try:
         def finish(text=None):
             if text:
@@ -284,11 +307,19 @@ def run_turn(identifier, body, session, settings):
                 else:
                     allowed = {'propose_plan', 'ask_question'}
                 available_tools = [t for t in TOOLS if t['name'] in allowed]
-            result = run_agent_step(client, ModelRequest(operation="campaign_agent_step", prompt_cache_key=prompt_cache_key(c.brand_id, "campaign_agent_step"),
-                model=settings.magi_retrieval_planner_model,
-                instructions=CAMPAIGN_CAPABILITIES + DECISION_GUIDANCE + "You manage a brand campaign using tools. For removals or individual outline edits to an existing ungenerated plan, use revise_plan directly: do not extract, retrieve, or propose again. Preserve all unspecified fields. Resolve numbered assets by latest saved plan order; read_campaign if needed. Format changes and additions require planning. Before proposing a plan call extract_requirements. Inspect structured issues and ask one essential clarification using ask_question if required information is missing. Optional details need not block planning. After a saved conflict choice, reuse current requirements and retrieved evidence; apply current decisions when proposing the plan. Extract again only for new instructions or incomplete requirements. Once brief issues are resolved, call retrieve_context, inspect its topic and channel tracks and empty_tracks, then propose_plan. Compacted context preserves sources but does not establish claim approval. Ask if essential evidence is absent; do not invent facts. Perform requested actions, never merely describe them. Edits apply immediately; new assets (social posts, emails, blogs and landing pages) require a plan and explicit UI approval. Never approve or generate new drafts yourself. For compound requests execute edits first then propose additions. Resolve numbered posts by saved order. Ask when ambiguous. Preserve the full user request, especially publication dates and required statistics, in tool instructions. Use propose_plan for requests to create any campaign assets, including emails, not answer_brand_question. When adding assets to an existing generated campaign, set addition=true and preserve existing drafts. Resolve requests such as an email for it using the current campaign topic and audience. Resolve brief issues before planning. After a plan reports a question, use ask_question and wait; never answer it yourself. Never write unsaved campaign copy. Finish only after tool results confirm success. For automatic library image selection use add_images, preserving existing attachments unless replacement is requested. Inspect per-asset results and report gaps honestly. Never generate images. Exact image edits require list_brand_images then change_image; revise_draft edits text only and preserves the attachment. For compound requests perform both tools. A change_image result must confirm the saved image ID before you claim it changed. Never claim scheduling is available or offer to schedule; requested dates are draft planning dates only. When a plan needs clarification, relay its one essential question concisely without introducing alternative evidence or reports that the plan has not verified as eligible. Use finish_turn to finish.",
-                input=inputs, tools=available_tools, tool_choice="required", max_output_tokens=2000,
-                context=RunContext(campaign_id=identifier, brand_id=c.brand_id)), session, turn=turn)
+            if (pending and len(available_tools) == 1
+                    and available_tools[0]['name'] in {'extract_requirements', 'retrieve_context'}):
+                from types import SimpleNamespace
+                call = {'type': 'function_call', 'name': available_tools[0]['name'],
+                        'call_id': 'dispatch_' + str(uuid4()),
+                        'arguments': json.dumps({'addition': continuation_mode == 'extend'})}
+                result = SimpleNamespace(response={'output': [call]})
+            else:
+                result = run_agent_step(client, ModelRequest(operation="campaign_agent_step", prompt_cache_key=prompt_cache_key(c.brand_id, "campaign_agent_step"),
+                    model=settings.magi_agent_model,
+                    instructions=CAMPAIGN_CAPABILITIES + DECISION_GUIDANCE + "You manage a brand campaign using tools. For removals or individual outline edits to an existing ungenerated plan, use revise_plan directly: do not extract, retrieve, or propose again. Preserve all unspecified fields. Resolve numbered assets by latest saved plan order; read_campaign if needed. Format changes and additions require planning. Before proposing a plan call extract_requirements. Inspect structured issues and ask one essential clarification using ask_question if required information is missing. Optional details need not block planning. After a saved conflict choice, reuse current requirements and retrieved evidence; apply current decisions when proposing the plan. Extract again only for new instructions or incomplete requirements. Once brief issues are resolved, call retrieve_context, inspect its topic and channel tracks and empty_tracks, then propose_plan. Compacted context preserves sources but does not establish claim approval. Ask if essential evidence is absent; do not invent facts. Perform requested actions, never merely describe them. Edits apply immediately; new assets (social posts, emails, blogs and landing pages) require a plan and explicit UI approval. Never approve or generate new drafts yourself. For compound requests execute edits first then propose additions. Resolve numbered posts by saved order. Ask when ambiguous. Preserve the full user request, especially publication dates and required statistics, in tool instructions. Use propose_plan for requests to create any campaign assets, including emails, not answer_brand_question. When adding assets to an existing generated campaign, set addition=true and preserve existing drafts. Resolve requests such as an email for it using the current campaign topic and audience. Resolve brief issues before planning. After a plan reports a question, use ask_question and wait; never answer it yourself. Never write unsaved campaign copy. Finish only after tool results confirm success. For automatic library image selection use add_images, preserving existing attachments unless replacement is requested. Inspect per-asset results and report gaps honestly. Never generate images. Exact image edits require list_brand_images then change_image; revise_draft edits text only and preserves the attachment. For compound requests perform both tools. A change_image result must confirm the saved image ID before you claim it changed. Never claim scheduling is available or offer to schedule; requested dates are draft planning dates only. When a plan needs clarification, relay its one essential question concisely without introducing alternative evidence or reports that the plan has not verified as eligible. Use finish_turn to finish.",
+                    input=inputs, tools=available_tools, tool_choice="required", max_output_tokens=2000,
+                    context=RunContext(campaign_id=identifier, brand_id=c.brand_id)), session, turn=turn)
             inputs.extend(result.response.get("output", []))
             calls = [x for x in result.response.get("output", []) if x.get("type") == "function_call"]
             if len(calls) != 1:
@@ -360,7 +391,7 @@ def run_turn(identifier, body, session, settings):
                         inputs.append({'type': 'function_call_output', 'call_id': call['call_id'],
                             'output': json.dumps({'status': 'blocked',
                                 'reason': 'This question has already been answered. Apply current_decisions and continue planning.',
-                                'current_decisions': current_decisions(c)})})
+                                'current_decisions': prompt_decisions(current_decisions(c))})})
                         needs_action = True
                         continue
                 question = {"id": str(uuid4()), **args, "answer": None,
@@ -380,8 +411,10 @@ def run_turn(identifier, body, session, settings):
                             'reason': 'No requested change has been saved. Complete the required action or ask a concrete clarification; do not promise future work.',
                             'available_actions': ['extract_requirements', 'read_campaign', 'ask_question']})})
                     continue
+                reply = ("Updated the saved draft." if any(x['tool'] == 'revise_draft' for x in completed)
+                         else args['text'])
                 c.data = {**c.data, "agent_last_turn": {"id": turn_id, "completed": completed},
-                    "messages": [*c.data["messages"], {"role": "assistant", "text": args["text"]}]}
+                    "messages": [*c.data["messages"], {"role": "assistant", "text": reply}]}
                 c.version += 1
                 turn.status = "completed"
                 session.commit()
@@ -439,7 +472,7 @@ def run_turn(identifier, body, session, settings):
                     ImageAttachment(version=c.version, image_id=args["image_id"]), session, settings)
                 completed.append({"tool": name, "version": output["version"], "image_id": args["image_id"]})
             elif name == "read_campaign":
-                output = agent_state(c)
+                output = {'version': c.version, 'state': agent_state(c, full=True)}
             else:
                 has_drafts = bool(c.data.get("generation", {}).get("drafts"))
                 route = "revise" if name == "revise_draft" else "extend" if name == "propose_plan" and args["addition"] and has_drafts else "campaign"
@@ -464,15 +497,21 @@ def run_turn(identifier, body, session, settings):
                 latest = output.get("plans", [])[-1:]
                 questions = latest[0].get("questions", []) if latest else []
                 if questions and not output.get('pending_question'):
-                    question = {"id": str(uuid4()), "text": questions[0], "kind": "text", "options": [], "answer": None}
+                    from app.brand.clarifications import pending_plan_question
+                    question = pending_plan_question(questions[0])
                     c = load(session, identifier)
                     c.data = {**c.data, "pending_question": question,
                         "questions": [*c.data.get("questions", []), question],
                         "messages": [*c.data.get("messages", []), {"role": "assistant", "text": question["text"], "question": question}]}
                     c.version += 1
                 return finish()
-            if name == "answer_brand_question":
+            if name == "answer_brand_question" or (name == "revise_draft" and output.get("pending_question")):
                 return finish()
+            # Services persist complete evidence and drafts. Selection needs their
+            # routing state and success receipts, never another full snapshot.
+            if name not in {'list_brand_images', 'read_campaign'}:
+                session.expire_all()
+                output = tool_receipt(load(session, identifier), name, args, output)
             inputs.append({"type": "function_call_output", "call_id": call["call_id"], "output": json.dumps(output)})
         raise ValueError("Agent tool limit reached")
     except Exception as exc:
@@ -491,7 +530,7 @@ def run_turn(identifier, body, session, settings):
         session.commit()
         detail = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(
-            exc.status_code if isinstance(exc, HTTPException) else 502,
+            exc.status_code if isinstance(exc, HTTPException) else getattr(exc, "status", 502),
             f"Agent turn stopped: {detail}. Completed actions retained: {completed}",
         ) from exc
     finally:

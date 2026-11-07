@@ -1938,3 +1938,30 @@ main.campaign-view { display: flex; flex-direction: column; overflow: hidden; }
 .campaign-flow-stage h3{font-size:15px;margin:12px 0 8px}.campaign-flow-stage p,.campaign-flow-note{font-size:12px;line-height:1.6;color:#746580}.campaign-flow-stage>small{font-size:11px;color:#746580}
 .campaign-flow-stage details{margin-top:16px;font-size:12px}.campaign-workspace .campaign-flow-stage button{display:flex;flex-direction:column;text-align:left;white-space:normal;width:100%;margin-top:8px;padding:10px;gap:5px}.campaign-flow-stage button small{font-size:10px;color:#746580}
 .campaign-flow-note{flex-basis:100%;margin:0}.activity-graph-expanded .campaign-flow{flex:1;align-content:start}
+
+.image-skeleton {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  aspect-ratio: 1.91 / 1;
+  overflow: hidden;
+  background: #eeebf2;
+  color: #797184;
+  font-size: 14px;
+}
+.image-skeleton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, #ffffff80 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: image-skeleton-shimmer 1.8s ease-in-out infinite;
+}
+.image-skeleton svg { width: 36px; height: 36px; }
+.image-skeleton > * { position: relative; }
+@keyframes image-skeleton-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .image-skeleton::before { animation: none; } }

@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     )
 
     magi_channel_compact_threshold_tokens: int = Field(default=8000, gt=0)
+    magi_explicit_prompt_cache: bool = True
+    magi_shared_evidence_cache: bool = False
+    magi_parallel_verification: bool = False
+    magi_parallel_planning: bool = False
+    magi_parallel_conflict_resolution: bool = False
     magi_campaign_agent_enabled: bool = False
     magi_database_url: str = "sqlite:///./data/magi.db"
     magi_brand_source_dir: Path = PROJECT_ROOT / "wickhold-candidate-package" / "candidate"
@@ -22,8 +27,10 @@ class Settings(BaseSettings):
     magi_retrieval_evaluation_dir: Path = PROJECT_ROOT / "evaluation"
     magi_openai_timeout_seconds: float = Field(default=60, gt=0, allow_inf_nan=False)
     magi_validation_timeout_seconds: float = Field(default=180, gt=0, allow_inf_nan=False)
-    magi_retrieval_planner_model: str = "gpt-4.1-mini"
+    magi_retrieval_planner_model: str = "gpt-6-luna"
     magi_conflict_review_model: str = "gpt-6-luna"
+    magi_agent_model: str = "gpt-6-luna"
+    magi_writer_model: str = "gpt-6-luna"
     openai_api_key: SecretStr | None = None
     firecrawl_api_key: SecretStr | None = None
 

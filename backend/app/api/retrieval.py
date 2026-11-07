@@ -239,3 +239,20 @@ def assess_context(
             include_section_ids=body.include_section_ids,
         )
     )
+
+
+@router.get('/brands/{brand_id}/guidelines')
+def get_guidelines(brand_id: str, session: Database):
+    from app.brand.guidelines import load_guidelines
+    return run(lambda: load_guidelines(session.get_bind(), brand_id))
+
+
+@router.post('/brands/{brand_id}/guidelines/extract')
+def prepare_guidelines(brand_id: str, session: Database, settings: Configuration):
+    from app.brand.guidelines import extract_guidelines
+    from app.llm.client import TrackedOpenAI
+    client = TrackedOpenAI(session.get_bind(), settings)
+    try:
+        return run(lambda: extract_guidelines(session.get_bind(), brand_id, client, settings))
+    finally:
+        client.close()

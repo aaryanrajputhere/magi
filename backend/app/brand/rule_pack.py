@@ -11,11 +11,11 @@ from app.brand.authority import current_authority
 from app.brand.chunking import CHUNKER_VERSION
 from app.brand.context import fingerprint, save_artifact
 from app.brand.retrieval import RetrievalError
-from app.llm.client import ModelRequest
+from app.llm.client import ModelRequest, ModelRunError
 from app.llm.context import RunContext
 from app.models import ContextArtifact, Document, DocumentChunk
 
-VERSION = 'original_rules_v2'
+VERSION = 'original_rules_v3'
 FORMATS = ['linkedin', 'x', 'email', 'blog', 'landing_page']
 
 
@@ -44,6 +44,47 @@ class Limit(Closed):
 
 class Limits(Closed):
     limits: list[Limit]
+
+
+class WritingExcerpt(Closed):
+    chunk_id: str
+    quote: str = Field(min_length=1)
+
+
+class WritingRules(Closed):
+    excerpts: list[WritingExcerpt] = Field(min_length=1)
+
+
+def grounded_writing_evidence(excerpts, evidence, limits):
+    """Reject invented/combined quotations; preserve exact length rules as well."""
+    hits = {e['chunk_id']: e for e in evidence}
+    quotes = {}
+    for excerpt in [*excerpts, *[WritingExcerpt(chunk_id=v['chunk_id'], quote=v['quote'])
+                                for v in limits]]:
+        hit = hits.get(excerpt.chunk_id)
+        if not hit or excerpt.quote not in hit['content']:
+            raise RetrievalError('Writing rule excerpt lacks an exact source quotation')
+        quotes.setdefault(excerpt.chunk_id, [])
+        if excerpt.quote not in quotes[excerpt.chunk_id]:
+            quotes[excerpt.chunk_id].append(excerpt.quote)
+    return [{**hits[identifier], 'content': '\n\n'.join(parts)}
+            for identifier, parts in quotes.items()]
+
+
+def attach_writing_evidence(pack, writing):
+    """Compaction is optional; invalid excerpts must never replace original rules."""
+    pack['writing_rules_run_id'] = writing.run_id
+    try:
+        evidence = grounded_writing_evidence(
+            writing.parsed.excerpts, pack['evidence'], pack['limits'])
+    except RetrievalError as exc:
+        pack.pop('writing_evidence', None)
+        pack['writing_rules_status'] = 'original_evidence_fallback'
+        pack['writing_rules_error'] = str(exc)
+    else:
+        pack['writing_evidence'] = evidence
+        pack['writing_rules_status'] = 'verified_excerpts'
+        pack.pop('writing_rules_error', None)
 
 
 def section_budget(limit):
@@ -208,6 +249,9 @@ def build_rule_packs(engine, brand_id, formats, client, settings, campaign_id):
         packs[channel] = {'version': VERSION, 'format': channel, 'authority_version_id': authority['id'],
             'corpus_fingerprint': corpus, 'assignments': [a.model_dump() for a in assignments],
             'evidence': evidence, 'limits': [v.model_dump() for v in result.parsed.limits], 'coverage': 'complete'}
+        # Generation selects original passages locally; do not run corpus-wide
+        # rewriting/compaction requests during campaign preparation.
+
     save_artifact(engine, brand_id, 'rule_packs', corpus,
         {'cache_key': key, 'authority_version_id': authority['id'], 'packs': packs})
     return packs

@@ -57,7 +57,7 @@ def test_extraction_repairs_invalid_references_once(change_assets, still_invalid
     from app.brand.campaign_requirements import CampaignRequirements, extract_requirements
     base = {'topic': 'Campaign', 'topic_details': [], 'constraints': [], 'unknowns': [], 'issues': [],
             'assets': [{'id': 'post', 'format': 'linkedin', 'audience': 'Same as missing',
-                        'purpose': 'Introduce product', 'timing': None, 'sender_or_byline': None,
+                        'purpose': 'Introduce product', 'timing': None, 'sender_or_byline': None, 'provenance': [],
                         'constraints': []}]}
     import copy
     fixed = copy.deepcopy(base)

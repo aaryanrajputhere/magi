@@ -12,6 +12,7 @@ from app.brand.decisions import current_decisions, evidence_snapshot
 from app.brand.retrieval import search_chunks
 from app.llm.client import ModelRequest
 from app.llm.context import RunContext
+from app.llm.prompt_payloads import semantic_projection
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ def resolve_approved_wording(client, settings, campaign, finding, hits, authorit
         'Never treat approved phrasing as permission to publish. Use not_applicable for other conflicts. '
         'Mark coverage_complete false if the supplied passages cannot cover the material conflict, '
         'including any relevant opposing authority. Do not invent facts or approvals.',
-        input=json.dumps({'conflict': finding, 'passages': [{**h, 'numbered_lines': [
+        input=json.dumps({'conflict': semantic_projection(finding), 'passages': [{**semantic_projection(h), 'numbered_lines': [
                               {'line': h['start_line'] + i, 'text': line}
                               for i, line in enumerate(h['content'].splitlines())]} for h in hits],
                           'authority': authority['map'],
@@ -168,8 +169,8 @@ def resolve_question(engine, client, settings, campaign, finding, authority):
             'if evidence does not fully answer the question, scope is ambiguous, or a user preference, permission, '
             'or change to explicit user intent is needed. Never infer universal scope from missing metadata. '
             'Do not invent approvals. Return limitations for uncertainty.',
-            input=json.dumps({'conflict': finding, 'passages': hits, 'authority': authority['map'],
-                              'messages': campaign.data.get('messages', [])}),
+            input=json.dumps({'conflict': semantic_projection(finding), 'passages': semantic_projection(hits), 'authority': authority['map'],
+                              'messages': semantic_projection(campaign.data.get('messages', []))}),
             max_output_tokens=4000,
             context=RunContext(brand_id=campaign.brand_id, campaign_id=campaign.id)),
             output_model=EvidenceAnalysis)
